@@ -19,7 +19,10 @@ const PORT = 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: [
+    'http://localhost:3000',
+    'https://personal-cloud-storage-navy.vercel.app/'  
+  ],
   credentials: true
 }));
 app.use(express.json());
