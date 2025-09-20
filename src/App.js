@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Upload, File, Search, Share2, Trash2, Tag, Eye, Folder, Download } from 'lucide-react';
 
+console.log('API URL:', API_BASE_URL);
 const API_BASE_URL = 'https://personal-cloud-storage-production.up.railway.app/api';
 
 const apiService = {
