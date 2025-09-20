@@ -69,6 +69,7 @@ const apiService = {
 };
 
 function App() {
+  // ALL HOOKS MUST BE AT THE TOP
   const [files, setFiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid');
@@ -76,8 +77,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [serverStatus, setServerStatus] = useState('checking');
-  const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef();
+
+  // ALL useEffect HOOKS MUST BE AT THE TOP
+  useEffect(() => {
+    loadFiles();
+  }, []);
 
   // Load files from backend
   const loadFiles = async () => {
@@ -89,57 +94,12 @@ function App() {
       setServerStatus('connected');
     } catch (error) {
       console.error('Failed to load files:', error);
-      setError('Failed to connect to server. Make sure the backend is running on port 5000.');
+      setError('Failed to connect to server. Make sure the backend is running.');
       setServerStatus('error');
     } finally {
       setLoading(false);
     }
   };
-
-  // Check server health
-  const checkServerHealth = async () => {
-    try {
-      await apiService.checkHealth();
-      setServerStatus('connected');
-      if (error) {
-        setError(null);
-        loadFiles();
-      }
-    } catch (err) {
-      setServerStatus('error');
-    }
-  };
-
-  // Load files on component mount
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  if (!isClient) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontFamily: 'system-ui'
-      }}>
-        Loading...
-      </div>
-    );
-  }
-useEffect(() => {
-  loadFiles();
-  
-  // Check server health every 10 seconds if there's an error
-  const healthCheck = setInterval(() => {
-    if (serverStatus === 'error') {
-      checkServerHealth();
-    }
-  }, 10000);
-
-  return () => clearInterval(healthCheck);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [serverStatus]);
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 B';
@@ -167,7 +127,6 @@ useEffect(() => {
     for (const file of uploadedFiles) {
       const uploadId = `upload-${Date.now()}-${Math.random()}`;
       
-      // Add to upload progress
       setUploads(prev => [...prev, {
         id: uploadId,
         name: file.name,
@@ -177,7 +136,6 @@ useEffect(() => {
       }]);
 
       try {
-        // Upload to backend with progress tracking
         await apiService.uploadFile(file, (progress) => {
           setUploads(prev => prev.map(u => 
             u.id === uploadId 
@@ -186,17 +144,15 @@ useEffect(() => {
           ));
         });
 
-        // Mark as completed
         setUploads(prev => prev.map(u => 
           u.id === uploadId 
             ? { ...u, progress: 100, status: 'complete' }
             : u
         ));
 
-        // Remove from uploads list after delay and refresh files
         setTimeout(() => {
           setUploads(prev => prev.filter(u => u.id !== uploadId));
-          loadFiles(); // Refresh file list
+          loadFiles();
         }, 2000);
 
       } catch (error) {
@@ -207,7 +163,6 @@ useEffect(() => {
             : u
         ));
         
-        // Remove failed upload after delay
         setTimeout(() => {
           setUploads(prev => prev.filter(u => u.id !== uploadId));
         }, 3000);
@@ -240,13 +195,12 @@ useEffect(() => {
     try {
       const result = await apiService.shareFile(file.id);
       navigator.clipboard.writeText(result.shareUrl);
-      alert(`Share link for "${file.name}" copied to clipboard!\n\n${result.shareUrl}\n\nExpires in: ${result.expiresIn}`);
+      alert(`Share link for "${file.name}" copied to clipboard!`);
     } catch (error) {
       console.error('Share failed:', error);
-      // Fallback to simple share
       const shareUrl = `http://localhost:5000/share/${Math.random().toString(36).substr(2, 16)}`;
       navigator.clipboard.writeText(shareUrl);
-      alert(`Share link copied to clipboard!\n${shareUrl}`);
+      alert(`Share link copied to clipboard!`);
     }
   };
 
@@ -254,259 +208,37 @@ useEffect(() => {
     apiService.downloadFile(file.id);
   };
 
-  // Inline styles (same as before)
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f9fafb',
-      fontFamily: 'system-ui, sans-serif'
-    },
-    header: {
-      backgroundColor: 'white',
-      borderBottom: '1px solid #e5e7eb',
-      padding: '16px',
-      marginBottom: '24px'
-    },
-    headerContent: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    title: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#111827'
-    },
-    searchBox: {
-      position: 'relative'
-    },
-    searchInput: {
-      paddingLeft: '40px',
-      paddingRight: '16px',
-      paddingTop: '8px',
-      paddingBottom: '8px',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      fontSize: '14px',
-      width: '300px'
-    },
-    searchIcon: {
-      position: 'absolute',
-      left: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: '#9ca3af'
-    },
-    main: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '0 16px'
-    },
-    statusBar: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '12px 16px',
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      marginBottom: '24px'
-    },
-    statusConnected: {
-      backgroundColor: '#dcfce7',
-      borderColor: '#bbf7d0',
-      color: '#166534'
-    },
-    statusError: {
-      backgroundColor: '#fef2f2',
-      borderColor: '#fecaca',
-      color: '#dc2626'
-    },
-    toolbar: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px'
-    },
-    uploadBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '12px 16px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500'
-    },
-    refreshBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '12px 16px',
-      backgroundColor: 'white',
-      color: '#374151',
-      border: '1px solid #d1d5db',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      marginLeft: '8px'
-    },
-    viewToggle: {
-      display: 'flex',
-      gap: '8px'
-    },
-    viewBtn: {
-      padding: '8px',
-      border: '1px solid #d1d5db',
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      cursor: 'pointer'
-    },
-    activeViewBtn: {
-      backgroundColor: '#dbeafe',
-      color: '#2563eb',
-      borderColor: '#2563eb'
-    },
-    uploadProgress: {
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '24px'
-    },
-    progressBar: {
-      width: '100%',
-      height: '8px',
-      backgroundColor: '#e5e7eb',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      marginTop: '8px'
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: '#2563eb',
-      transition: 'width 0.3s ease'
-    },
-    progressError: {
-      backgroundColor: '#dc2626'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-      gap: '16px'
-    },
-    fileCard: {
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      padding: '16px',
-      cursor: 'pointer',
-      transition: 'box-shadow 0.2s'
-    },
-    fileCardHover: {
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-    },
-    fileHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '12px'
-    },
-    fileActions: {
-      display: 'flex',
-      gap: '4px'
-    },
-    actionBtn: {
-      padding: '4px',
-      border: 'none',
-      backgroundColor: 'transparent',
-      color: '#9ca3af',
-      cursor: 'pointer',
-      borderRadius: '4px'
-    },
-    fileName: {
-      fontSize: '16px',
-      fontWeight: '500',
-      color: '#111827',
-      marginBottom: '4px',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    fileSize: {
-      fontSize: '14px',
-      color: '#6b7280',
-      marginBottom: '8px'
-    },
-    tags: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '4px',
-      marginBottom: '8px'
-    },
-    tag: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      padding: '4px 8px',
-      backgroundColor: '#dbeafe',
-      color: '#1d4ed8',
-      fontSize: '12px',
-      borderRadius: '12px'
-    },
-    summary: {
-      fontSize: '12px',
-      color: '#6b7280',
-      lineHeight: '1.4'
-    },
-    aiProcessing: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 12px',
-      backgroundColor: '#eff6ff',
-      borderRadius: '6px',
-      marginTop: '8px'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '64px 16px',
-      color: '#6b7280'
-    },
-    loadingState: {
-      textAlign: 'center',
-      padding: '64px 16px',
-      color: '#6b7280'
-    }
-  };
+  // NOW conditional returns are allowed
+  if (loading && files.length === 0) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui'
+      }}>
+        Loading...
+      </div>
+    );
+  }
 
+  // Main component JSX
   return (
-    <div style={styles.container}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: 'system-ui' }}>
       {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.headerContent}>
-          <h1 style={styles.title}>
+      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '16px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>
             <Brain size={32} color="#2563eb" />
             AI Cloud Storage
-            <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 'normal', marginLeft: '8px' }}>
-              (Connected to Backend)
-            </span>
           </h1>
-          <div style={styles.searchBox}>
-            <Search size={20} style={styles.searchIcon} />
+          <div style={{ position: 'relative' }}>
+            <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
             <input
               type="text"
-              placeholder="Search files, tags, or content..."
-              style={styles.searchInput}
+              placeholder="Search files..."
+              style={{ paddingLeft: '40px', paddingRight: '16px', paddingTop: '8px', paddingBottom: '8px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '300px' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -514,12 +246,19 @@ useEffect(() => {
         </div>
       </div>
 
-      <div style={styles.main}>
-        {/* Server Status */}
-        <div style={{
-          ...styles.statusBar,
-          ...(serverStatus === 'connected' ? styles.statusConnected : {}),
-          ...(serverStatus === 'error' ? styles.statusError : {})
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+        {/* Connection Status */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px', 
+          padding: '12px 16px', 
+          backgroundColor: serverStatus === 'connected' ? '#dcfce7' : '#fef2f2',
+          border: '1px solid ' + (serverStatus === 'connected' ? '#bbf7d0' : '#fecaca'),
+          borderRadius: '8px', 
+          marginTop: '24px',
+          marginBottom: '24px',
+          color: serverStatus === 'connected' ? '#166534' : '#dc2626'
         }}>
           <div style={{ 
             width: '8px', 
@@ -527,56 +266,31 @@ useEffect(() => {
             borderRadius: '50%', 
             backgroundColor: serverStatus === 'connected' ? '#10b981' : '#ef4444' 
           }} />
-          {serverStatus === 'connected' && `✅ Connected to backend • ${files.length} files`}
-          {serverStatus === 'error' && '❌ Backend connection failed • Make sure server is running on port 5000'}
-          {serverStatus === 'checking' && '🔄 Connecting to backend...'}
+          {serverStatus === 'connected' && `Connected to backend • ${files.length} files`}
+          {serverStatus === 'error' && 'Backend connection failed • Check server status'}
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div style={{ ...styles.statusBar, ...styles.statusError, marginBottom: '24px' }}>
-            <strong>Error:</strong> {error}
-            <button 
-              onClick={loadFiles}
-              style={{ 
-                marginLeft: 'auto', 
-                padding: '4px 8px', 
-                backgroundColor: '#dc2626', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
 
         {/* Upload Progress */}
         {uploads.length > 0 && (
-          <div style={styles.uploadProgress}>
-            <h3 style={{ margin: '0 0 16px 0', fontWeight: '500' }}>
-              Uploading Files ({uploads.length})
-            </h3>
+          <div style={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontWeight: '500' }}>Uploading Files</h3>
             {uploads.map(upload => (
               <div key={upload.id} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '14px' }}>
-                    {upload.name} ({formatFileSize(upload.size)})
-                  </span>
+                  <span style={{ fontSize: '14px' }}>{upload.name}</span>
                   <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                    {upload.status === 'complete' ? '✅ Complete' : 
-                     upload.status === 'error' ? '❌ Failed' : 
+                    {upload.status === 'complete' ? 'Complete' : 
+                     upload.status === 'error' ? 'Failed' : 
                      `${upload.progress}%`}
                   </span>
                 </div>
-                <div style={styles.progressBar}>
+                <div style={{ width: '100%', height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
                   <div 
-                    style={{
-                      ...styles.progressFill,
-                      ...(upload.status === 'error' ? styles.progressError : {}),
-                      width: `${upload.progress}%`
+                    style={{ 
+                      height: '100%', 
+                      backgroundColor: upload.status === 'error' ? '#dc2626' : '#2563eb',
+                      width: `${upload.progress}%`,
+                      transition: 'width 0.3s ease'
                     }}
                   />
                 </div>
@@ -586,8 +300,8 @@ useEffect(() => {
         )}
 
         {/* Toolbar */}
-        <div style={styles.toolbar}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
             <input
               ref={fileInputRef}
               type="file"
@@ -597,85 +311,37 @@ useEffect(() => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              style={styles.uploadBtn}
-              disabled={serverStatus !== 'connected'}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
             >
               <Upload size={16} />
               Upload Files
             </button>
-            <button
-              onClick={loadFiles}
-              style={styles.refreshBtn}
-              disabled={loading}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-              onMouseOut={(e) => e.target.style.backgroundColor = 'white'}
-            >
-              <RefreshCw size={16} />
-              Refresh
-            </button>
-          </div>
-          <div style={styles.viewToggle}>
-            <button
-              onClick={() => setViewMode('grid')}
-              style={{
-                ...styles.viewBtn,
-                ...(viewMode === 'grid' ? styles.activeViewBtn : {})
-              }}
-            >
-              <Grid size={20} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              style={{
-                ...styles.viewBtn,
-                ...(viewMode === 'list' ? styles.activeViewBtn : {})
-              }}
-            >
-              <List size={20} />
-            </button>
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div style={styles.loadingState}>
-            <RefreshCw size={64} color="#d1d5db" className="animate-spin" />
-            <p style={{ fontSize: '18px', margin: '16px 0 8px 0' }}>Loading files...</p>
-            <p>Connecting to backend server...</p>
-          </div>
-        ) : filteredFiles.length === 0 ? (
-          <div style={styles.emptyState}>
+        {/* Files Grid */}
+        {filteredFiles.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '64px 16px', color: '#6b7280' }}>
             <Folder size={64} color="#d1d5db" />
-            <p style={{ fontSize: '18px', margin: '16px 0 8px 0' }}>
-              {searchTerm ? 'No files match your search' : 'No files found'}
-            </p>
-            <p>
-              {searchTerm ? 'Try a different search term' : 'Upload files to get started!'}
-            </p>
+            <p style={{ fontSize: '18px', margin: '16px 0 8px 0' }}>No files found</p>
+            <p>Upload files to get started!</p>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {filteredFiles.map(file => (
               <div
                 key={file.id}
-                style={styles.fileCard}
-                onMouseEnter={(e) => Object.assign(e.target.style, styles.fileCardHover)}
-                onMouseLeave={(e) => e.target.style.boxShadow = ''}
+                style={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', cursor: 'pointer' }}
               >
-                <div style={styles.fileHeader}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   {getFileIcon(file)}
-                  <div style={styles.fileActions}>
+                  <div style={{ display: 'flex', gap: '4px' }}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(file);
                       }}
-                      style={styles.actionBtn}
-                      onMouseOver={(e) => e.target.style.color = '#059669'}
-                      onMouseOut={(e) => e.target.style.color = '#9ca3af'}
-                      title="Download"
+                      style={{ padding: '4px', border: 'none', backgroundColor: 'transparent', color: '#9ca3af', cursor: 'pointer' }}
                     >
                       <Download size={16} />
                     </button>
@@ -684,10 +350,7 @@ useEffect(() => {
                         e.stopPropagation();
                         handleShare(file);
                       }}
-                      style={styles.actionBtn}
-                      onMouseOver={(e) => e.target.style.color = '#2563eb'}
-                      onMouseOut={(e) => e.target.style.color = '#9ca3af'}
-                      title="Share"
+                      style={{ padding: '4px', border: 'none', backgroundColor: 'transparent', color: '#9ca3af', cursor: 'pointer' }}
                     >
                       <Share2 size={16} />
                     </button>
@@ -696,48 +359,32 @@ useEffect(() => {
                         e.stopPropagation();
                         handleDelete(file.id);
                       }}
-                      style={styles.actionBtn}
-                      onMouseOver={(e) => e.target.style.color = '#dc2626'}
-                      onMouseOut={(e) => e.target.style.color = '#9ca3af'}
-                      title="Delete"
+                      style={{ padding: '4px', border: 'none', backgroundColor: 'transparent', color: '#9ca3af', cursor: 'pointer' }}
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
                 
-                <h3 style={styles.fileName}>{file.name}</h3>
-                <p style={styles.fileSize}>
-                  {formatFileSize(file.size)} • {new Date(file.uploadDate).toLocaleDateString()}
-                </p>
+                <h3 style={{ fontSize: '16px', fontWeight: '500', color: '#111827', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>{formatFileSize(file.size)}</p>
                 
                 {file.aiTags && file.aiTags.length > 0 && (
-                  <div style={styles.tags}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                     {file.aiTags.slice(0, 3).map(tag => (
-                      <span key={tag} style={styles.tag}>
+                      <span
+                        key={tag}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '12px', borderRadius: '12px' }}
+                      >
                         <Tag size={12} />
                         {tag}
                       </span>
                     ))}
-                    {file.aiTags.length > 3 && (
-                      <span style={{ ...styles.tag, backgroundColor: '#f3f4f6', color: '#6b7280' }}>
-                        +{file.aiTags.length - 3} more
-                      </span>
-                    )}
                   </div>
                 )}
                 
                 {file.aiSummary && (
-                  <p style={styles.summary}>{file.aiSummary}</p>
-                )}
-
-                {!file.aiProcessed && (
-                  <div style={styles.aiProcessing}>
-                    <Brain size={16} color="#3b82f6" className="animate-pulse" />
-                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
-                      AI analyzing...
-                    </span>
-                  </div>
+                  <p style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>{file.aiSummary}</p>
                 )}
               </div>
             ))}
