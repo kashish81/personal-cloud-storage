@@ -26,7 +26,7 @@ app.use(cors({
     
     const allowedOrigins = [
       'http://localhost:3000',
-      'https://your-vercel-url.vercel.app'  // Replace with your actual Vercel URL
+      'https://personal-cloud-storage-navy.vercel.app/'  // Replace with your actual Vercel URL
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
