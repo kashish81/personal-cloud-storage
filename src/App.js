@@ -76,6 +76,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [serverStatus, setServerStatus] = useState('checking');
+  const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef();
 
   // Load files from backend
@@ -111,6 +112,22 @@ function App() {
 
   // Load files on component mount
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+  if (!isClient) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+useEffect(() => {
   loadFiles();
   
   // Check server health every 10 seconds if there's an error
