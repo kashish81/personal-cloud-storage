@@ -111,17 +111,18 @@ function App() {
 
   // Load files on component mount
   useEffect(() => {
-    loadFiles();
-    
-    // Check server health every 10 seconds if there's an error
-    const healthCheck = setInterval(() => {
-      if (serverStatus === 'error') {
-        checkServerHealth();
-      }
-    }, 10000);
+  loadFiles();
+  
+  // Check server health every 10 seconds if there's an error
+  const healthCheck = setInterval(() => {
+    if (serverStatus === 'error') {
+      checkServerHealth();
+    }
+  }, 10000);
 
-    return () => clearInterval(healthCheck);
-  }, [serverStatus]);
+  return () => clearInterval(healthCheck);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [serverStatus]);
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 B';
