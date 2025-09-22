@@ -20,27 +20,25 @@ const PORT = 5000;
 // Middleware
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://personal-cloud-storage-navy.vercel.app/'  // Replace with your actual Vercel URL
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Temporarily allow all for debugging
-    }
-  },
+  origin: [
+    'http://localhost:3000',
+    'https://personal-cloud-storage-navy.vercel.app'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Handle preflight requests explicitly
+app.options('*', cors({
+  origin: [
+    'http://localhost:3000', 
+    'https://personal-cloud-storage-navy.vercel.app'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 // Add explicit OPTIONS handling
 app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin);
