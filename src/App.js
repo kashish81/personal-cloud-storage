@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const API_BASE_URL = 'https://personal-cloud-storage-1.onrender.com';
+const API_BASE_URL = 'https://personal-cloud-storage.onrender.com';
 
 function App() {
   const [files, setFiles] = useState([]);
