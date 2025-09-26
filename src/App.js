@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Upload, File, Search, Grid, List, Share2, Trash2, Tag, Eye, Folder, Download, RefreshCw } from 'lucide-react';
 
 // API Service
-const API_BASE_URL = 'http://personal-cloud-storage.onrender.com/api';
+// const API_BASE_URL = 'http://personal-cloud-storage.onrender.com/api';
+const API_BASE_URL = 'https://personal-cloud-storage-production.up.railway.app/api';
 
 const apiService = {
   uploadFile: async (file, onProgress) => {
