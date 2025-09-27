@@ -15,7 +15,6 @@ app.use(cors({
   ],
   credentials: true
 }));
-
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
