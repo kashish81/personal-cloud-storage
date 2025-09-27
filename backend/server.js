@@ -9,11 +9,8 @@ const PORT = process.env.PORT || 5000;
 
 // CORS configuration
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://personal-cloud-storage-navy.vercel.app'
-  ],
-  credentials: true
+  origin: '*',
+  credentials: false
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
