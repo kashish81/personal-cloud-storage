@@ -2,7 +2,7 @@
 
 All notable changes to the AI Cloud Storage project.
 
-## [1.0.0] - 2024-12-XX (Current Version)
+## [1.0.0] - (Current Version)
 
 ### Added
 - Complete file upload system with drag-and-drop support

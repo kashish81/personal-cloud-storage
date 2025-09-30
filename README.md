@@ -54,3 +54,12 @@ A full-stack web application that combines traditional file storage with intelli
 cd backend
 npm install
 npm start
+
+## License
+Academic Project - Educational Use
+
+## Contact
+[Kashish Rajan]
+[kashishrajan96@gmail.com]
+[Divyanshi Verma]
+[divyanshiss19@gmail.com]

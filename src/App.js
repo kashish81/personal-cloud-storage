@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Upload, File, Search, Grid, List, Share2, Trash2, Tag, Eye, Folder, Download, RefreshCw } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/Login';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+import './App.css';
 
 // API Service
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -18,6 +23,47 @@ const apiService = {
           onProgress(progress);
         }
       });
+
+// Loading Component
+const LoadingScreen = () => {
+  return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  );
+};
+
+// Auth Wrapper Component
+const AuthWrapper = () => {
+  const [showLogin, setShowLogin] = useState(true);
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (isAuthenticated) {
+    return <Dashboard />;
+  }
+
+  return showLogin ? (
+    <Login onToggleMode={() => setShowLogin(false)} />
+  ) : (
+    <Register onToggleMode={() => setShowLogin(true)} />
+  );
+};
+
+// Main App Component
+function App() {
+  return (
+    <AuthProvider>
+      <AuthWrapper />
+    </AuthProvider>
+  );
+}
+
+// export default App;
       
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
