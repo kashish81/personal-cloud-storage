@@ -1,8 +1,63 @@
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+
+// GOOGLE SIGN IN - POST /api/auth/google
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    // Verify Google token
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+
+    // Check if user exists
+    let user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Create new user from Google data
+      user = await User.create({
+        username: name.toLowerCase().replace(/\s+/g, '_') + '_' + googleId.slice(0, 6),
+        email: email,
+        password: 'google_oauth_' + googleId, // Placeholder password
+        profilePicture: picture,
+        isVerified: true
+      });
+    }
+
+    // Generate token
+    const token = user.generateAuthToken();
+
+    res.json({
+      success: true,
+      message: 'Google sign in successful',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture,
+        storageUsed: user.storageUsed,
+        storageLimit: user.storageLimit
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Google authentication failed'
+    });
+  }
+});
 
 // REGISTER - POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -146,14 +201,20 @@ router.post('/login', async (req, res) => {
 // GET CURRENT USER - GET /api/auth/me
 router.get('/me', auth, async (req, res) => {
   try {
+    // Get fresh user data
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'username', 'email', 'profilePicture', 'storageUsed', 'storageLimit']
+    });
+
     res.json({
       success: true,
       user: {
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email,
-        storageUsed: req.user.storageUsed,
-        storageLimit: req.user.storageLimit
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture || '',
+        storageUsed: parseInt(user.storageUsed) || 0,
+        storageLimit: parseInt(user.storageLimit) || 5368709120
       }
     });
   } catch (error) {
@@ -173,44 +234,43 @@ router.post('/logout', auth, (req, res) => {
   });
 });
 
-// UPDATE PROFILE - PUT /api/auth/update-profile
-router.put('/update-profile', auth, async (req, res) => {
+// UPDATE USERNAME - PUT /api/auth/update-username
+router.put('/update-username', auth, async (req, res) => {
   try {
-    const { username, email } = req.body;
+    const { username } = req.body;
     const userId = req.user.id;
 
-    // Check if username or email already exists
+    if (!username || username.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username must be at least 3 characters'
+      });
+    }
+
+    // Check if username already exists
     const existingUser = await User.findOne({
       where: {
-        [Op.and]: [
-          { id: { [Op.ne]: userId } },
-          { [Op.or]: [{ email }, { username }] }
-        ]
+        username,
+        id: { [Op.ne]: userId }
       }
     });
 
     if (existingUser) {
-      const field = existingUser.email === email ? 'email' : 'username';
       return res.status(400).json({
         success: false,
-        message: `This ${field} is already taken`
+        message: 'Username already taken'
       });
     }
 
-    // Update user
-    await User.update(
-      { username, email },
-      { where: { id: userId } }
-    );
+    await User.update({ username }, { where: { id: userId } });
 
-    // Get updated user
     const updatedUser = await User.findByPk(userId, {
       attributes: { exclude: ['password'] }
     });
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: 'Username updated successfully',
       user: {
         id: updatedUser.id,
         username: updatedUser.username,
@@ -220,12 +280,91 @@ router.put('/update-profile', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('Update username error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Failed to update username'
     });
   }
 });
 
+// CHANGE PASSWORD - PUT /api/auth/change-password
+router.put('/change-password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
+      });
+    }
+
+    const user = await User.findByPk(userId);
+    const isMatch = await user.comparePassword(currentPassword);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
+    });
+  }
+});
+
+// GET ACCOUNT STATS - GET /api/auth/stats
+router.get('/stats', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const File = require('../models/File');
+
+    const fileCount = await File.count({ where: { userId } });
+    const user = await User.findByPk(userId);
+
+    res.json({
+      success: true,
+      stats: {
+        totalFiles: fileCount,
+        storageUsed: user.storageUsed,
+        storageLimit: user.storageLimit,
+        accountCreated: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch stats'
+    });
+  }
+});
 module.exports = router;

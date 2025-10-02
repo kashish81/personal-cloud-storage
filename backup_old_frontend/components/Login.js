@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
@@ -7,6 +8,31 @@ const Login = ({ onToggleMode }) => {
     email: '',
     password: ''
   });
+  const handleGoogleSuccess = async (credentialResponse) => {
+  try {
+    setLoading(true);
+    const response = await fetch('http://localhost:5000/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        credential: credentialResponse.credential 
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      localStorage.setItem('token', data.token);
+      window.location.reload(); // Refresh to update auth state
+    } else {
+      setMessage(data.message);
+    }
+  } catch (error) {
+    setMessage('Network error. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -88,6 +114,29 @@ const Login = ({ onToggleMode }) => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        {/* Divider */}
+<div style={{ 
+  display: 'flex', 
+  alignItems: 'center', 
+  margin: '20px 0',
+  gap: '10px'
+}}>
+  <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+  <span style={{ color: '#999', fontSize: '14px' }}>OR</span>
+  <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+</div>
+
+{/* Google Sign In Button */}
+<GoogleLogin
+  onSuccess={handleGoogleSuccess}
+  onError={() => setMessage('Google sign in failed')}
+  useOneTap
+  theme="filled_blue"
+  size="large"
+  text="signin_with"
+  width="100%"
+/>
 
         <div className="auth-footer">
           <p>

@@ -1,92 +1,48 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Create Sequelize instance
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASS,
+  process.env.DB_NAME || 'cloud_storage',
+  process.env.DB_USER || 'postgres',
+  process.env.DB_PASSWORD || '',
   {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
-    logging: false, // Set to console.log to see SQL queries
+    logging: false, // Change to console.log to see SQL queries
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000
+    },
+    dialectOptions: {
+      // Connection timeout
+      connectTimeout: 60000
     }
   }
 );
 
-// File model
-const File = sequelize.define('File', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  originalname: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  filename: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  mimetype: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  size: {
-    type: DataTypes.BIGINT,
-    allowNull: false
-  },
-  path: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  aiTags: {
-    type: DataTypes.JSONB,
-    defaultValue: []
-  },
-  aiSummary: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  aiProcessed: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  uploadDate: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  }
-});
-
-// Test connection and sync models
-const initDatabase = async () => {
+// Test database connection function
+const testConnection = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-    
-    // Sync models (creates tables if they don't exist)
-    await sequelize.sync();
-    console.log('Database models synchronized.');
-    
+    console.log('✅ PostgreSQL Connected Successfully!');
     return true;
   } catch (error) {
-    console.error('Unable to connect to database:', error);
-    return false;
+    console.error('❌ PostgreSQL Connection Error:', error.message);
+    console.error('Check your .env file settings:');
+    console.error('- DB_NAME:', process.env.DB_NAME);
+    console.error('- DB_USER:', process.env.DB_USER);
+    console.error('- DB_HOST:', process.env.DB_HOST);
+    console.error('- DB_PORT:', process.env.DB_PORT);
+    throw error;
   }
 };
 
-module.exports = {
-  sequelize,
-  File,
-  initDatabase
+// Export both sequelize and testConnection
+module.exports = { 
+  sequelize, 
+  testConnection 
 };

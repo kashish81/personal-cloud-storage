@@ -109,4 +109,12 @@ User.prototype.toJSON = function() {
   return values;
 };
 
+// After the User.prototype methods, before module.exports
+User.associate = (models) => {
+  User.hasMany(models.File, {
+    foreignKey: 'userId',
+    as: 'files'
+  });
+};
+
 module.exports = User;
