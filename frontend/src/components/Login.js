@@ -61,7 +61,7 @@ const Login = ({ onToggleMode }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <Logo size="large" showText={false} />
+          {/* <Logo size="large" showText={false} /> */}
           <h2>Welcome Back</h2>
           <p>Sign in to your cloud storage</p>
         </div>
