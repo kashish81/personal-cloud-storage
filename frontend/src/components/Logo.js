@@ -4,8 +4,8 @@ import { Cloud, Zap } from 'lucide-react';
 const Logo = ({ size = 'medium', showText = true }) => {
   const sizes = {
     small: { icon: 24, text: 16 },
-    medium: { icon: 32, text: 20 },
-    large: { icon: 48, text: 28 }
+    medium: { icon: 50, text: 24 },
+    large: { icon: 55, text: 30 }
   };
 
   const currentSize = sizes[size];
