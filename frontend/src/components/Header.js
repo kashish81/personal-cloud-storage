@@ -82,7 +82,7 @@ const styles = {
     padding: '0 24px',
     position: 'fixed',
     top: 0,
-    left: '260px',
+    left: '325px',
     right: 0,
     zIndex: 100
   },

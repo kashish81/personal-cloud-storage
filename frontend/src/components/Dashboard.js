@@ -117,7 +117,7 @@ const styles = {
   content: {
     flex: 1,
     marginTop: '64px',
-    padding: '24px 32px',
+    padding: '24px 80px',
     overflowY: 'auto',
     background: '#fff'
   },

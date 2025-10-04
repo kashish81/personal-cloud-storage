@@ -39,14 +39,14 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
       </button>
 
       {/* Menu Items */}
-      <nav style={styles.nav}>
-        {menuItems.map(item => (
+      <nav style={styles.menuGrid}>
+        {menuItems.map((item, idx) => (
           <button
             key={item.id}
             onClick={() => onViewChange(item.id)}
             style={{
-              ...styles.navItem,
-              ...(activeView === item.id ? styles.navItemActive : {})
+              ...styles.menuItem,
+              ...(activeView === item.id ? styles.menuItemActive : {})
             }}
           >
             <item.icon size={20} />
@@ -85,7 +85,7 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
 
 const styles = {
   sidebar: {
-    width: '260px',
+    width: '300px',
     height: '100vh',
     background: '#f8f9fa',
     borderRight: '1px solid #e0e0e0',
@@ -141,6 +141,35 @@ const styles = {
     background: '#e8f0fe',
     color: '#1967d2'
   },
+  menuGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gridTemplateRows: '1fr 1fr',
+    gap: '8px',
+    marginBottom: 'auto',
+    marginTop: '8px'
+  },
+  menuItem: {
+    background: 'white',
+    border: '1px solid #e0e0e0',
+    borderRadius: '12px',
+    padding: '25px 0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '15px',
+    fontWeight: '500',
+    color: '#5f6368',
+    cursor: 'pointer',
+    justifyContent: 'center',
+    transition: 'background 0.2s, color 0.2s',
+    boxShadow: '0 1px 2px 0 rgba(60,64,67,.08)'
+  },
+  menuItemActive: {
+    background: '#e8f0fe',
+    color: '#1967d2',
+    border: '1px solid #1967d2'
+  },
   storageSection: {
     padding: '16px',
     marginTop: '20px',
@@ -187,7 +216,8 @@ const styles = {
     cursor: 'pointer',
     textAlign: 'left',
     transition: 'background 0.2s ease',
-    marginTop: '8px'
+    marginTop: '8px',
+    marginBottom: '20px'
   }
 };
 
