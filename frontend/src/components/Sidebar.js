@@ -1,10 +1,43 @@
-import React from 'react';
-import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon } from 'lucide-react';
-import Logo from './Logo';
+import React, { useState, useEffect } from 'react';
+import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [storageExpanded, setStorageExpanded] = useState(false);
+  const [fileStats, setFileStats] = useState(null);
+  
+
+  useEffect(() => {
+    // Fetch file statistics
+    fetchFileStats();
+  }, []);
+
+const fetchFileStats = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/files/stats', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      setFileStats(data.stats);
+    }
+  } catch (error) {
+    console.error('Fetch stats error:', error);
+    // Fallback to empty stats
+    setFileStats({
+      images: 0,
+      documents: 0,
+      videos: 0,
+      audio: 0,
+      others: 0
+    });
+  }
+};
 
   const formatStorage = (bytes) => {
     if (!bytes) return '0 B';
@@ -12,6 +45,18 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getPercentage = (value, total) => {
+    return ((value / total) * 100).toFixed(1);
+  };
+
+  const fileTypeColors = {
+    images: { color: '#FF6B6B', label: 'Images' },
+    documents: { color: '#4ECDC4', label: 'Documents' },
+    videos: { color: '#95E1D3', label: 'Videos' },
+    audio: { color: '#FFE66D', label: 'Audio' },
+    others: { color: '#A8DADC', label: 'Others' }
   };
 
   const storagePercentage = user.storageUsed && user.storageLimit 
@@ -29,7 +74,10 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
     <div style={styles.sidebar}>
       {/* Logo */}
       <div style={styles.logoSection}>
-        <Logo size="medium" />
+        <div style={styles.logo}>
+          <HardDrive size={32} color="#667eea" />
+          <span style={styles.logoText}>AI Cloud Storage</span>
+        </div>
       </div>
 
       {/* New Button */}
@@ -40,7 +88,7 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
 
       {/* Menu Items */}
       <nav style={styles.menuGrid}>
-        {menuItems.map((item, idx) => (
+        {menuItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onViewChange(item.id)}
@@ -55,23 +103,68 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
         ))}
       </nav>
 
-      {/* Storage Section */}
+      {/* Enhanced Storage Section */}
       <div style={styles.storageSection}>
-        <div style={styles.storageHeader}>
-          <HardDrive size={20} />
-          <span>Storage</span>
-        </div>
+        <button 
+          onClick={() => setStorageExpanded(!storageExpanded)}
+          style={styles.storageHeader}
+        >
+          <div style={styles.storageHeaderLeft}>
+            <HardDrive size={20} />
+            <span>Storage</span>
+          </div>
+          {storageExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
         
+        {/* Multi-colored Progress Bar */}
         <div style={styles.storageBar}>
-          <div style={{
-            ...styles.storageProgress,
-            width: `${Math.min(storagePercentage, 100)}%`
-          }} />
+          {fileStats && Object.entries(fileStats).map(([type, size]) => {
+            const percentage = (size / user.storageLimit) * 100;
+            return (
+              <div
+                key={type}
+                style={{
+                  ...styles.storageSegment,
+                  width: `${percentage}%`,
+                  background: fileTypeColors[type].color
+                }}
+                title={`${fileTypeColors[type].label}: ${formatStorage(size)}`}
+              />
+            );
+          })}
         </div>
         
         <p style={styles.storageText}>
-          {formatStorage(user.storageUsed || 0)} of {formatStorage(user.storageLimit || 5368709120)} used
+          {formatStorage(user.storageUsed)} of {formatStorage(user.storageLimit)}
         </p>
+        <p style={styles.storagePercentage}>
+          {storagePercentage.toFixed(1)}% used
+        </p>
+
+        {/* Expanded Details */}
+        {storageExpanded && fileStats && (
+          <div style={styles.storageDetails}>
+            {Object.entries(fileStats).map(([type, size]) => (
+              <div key={type} style={styles.storageDetailItem}>
+                <div style={styles.storageDetailLabel}>
+                  <div 
+                    style={{
+                      ...styles.colorDot,
+                      background: fileTypeColors[type].color
+                    }}
+                  />
+                  <span>{fileTypeColors[type].label}</span>
+                </div>
+                <div style={styles.storageDetailValue}>
+                  <span style={styles.storageSize}>{formatStorage(size)}</span>
+                  <span style={styles.storagePercent}>
+                    {getPercentage(size, user.storageUsed)}%
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Settings Button */}
@@ -92,14 +185,24 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     padding: '20px 12px',
-    position: 'fixed',
-    left: 0,
-    top: 0,
     overflowY: 'auto'
   },
   logoSection: {
     marginBottom: '24px',
     paddingLeft: '8px'
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  logoText: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#333',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent'
   },
   newButton: {
     display: 'flex',
@@ -115,31 +218,6 @@ const styles = {
     marginBottom: '20px',
     transition: 'all 0.2s ease',
     boxShadow: '0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)'
-  },
-  nav: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    marginBottom: 'auto'
-  },
-  navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '10px 20px',
-    background: 'none',
-    border: 'none',
-    borderRadius: '25px',
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#5f6368',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'background 0.2s ease'
-  },
-  navItemActive: {
-    background: '#e8f0fe',
-    color: '#1967d2'
   },
   menuGrid: {
     display: 'grid',
@@ -162,7 +240,7 @@ const styles = {
     color: '#5f6368',
     cursor: 'pointer',
     justifyContent: 'center',
-    transition: 'background 0.2s, color 0.2s',
+    transition: 'all 0.2s',
     boxShadow: '0 1px 2px 0 rgba(60,64,67,.08)'
   },
   menuItemActive: {
@@ -173,34 +251,94 @@ const styles = {
   storageSection: {
     padding: '16px',
     marginTop: '20px',
-    marginBottom: '12px'
+    marginBottom: '12px',
+    background: 'white',
+    borderRadius: '12px',
+    border: '1px solid #e0e0e0'
   },
   storageHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    justifyContent: 'space-between',
+    width: '100%',
+    background: 'none',
+    border: 'none',
     marginBottom: '12px',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#5f6368'
+    color: '#5f6368',
+    cursor: 'pointer',
+    padding: 0
+  },
+  storageHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
   },
   storageBar: {
     width: '100%',
-    height: '4px',
+    height: '8px',
     background: '#e0e0e0',
-    borderRadius: '2px',
+    borderRadius: '4px',
     overflow: 'hidden',
-    marginBottom: '8px'
+    marginBottom: '8px',
+    display: 'flex'
   },
-  storageProgress: {
+  storageSegment: {
     height: '100%',
-    background: '#1a73e8',
     transition: 'width 0.3s ease'
   },
   storageText: {
-    fontSize: '12px',
+    fontSize: '13px',
     color: '#5f6368',
+    margin: '0 0 4px 0',
+    fontWeight: '500'
+  },
+  storagePercentage: {
+    fontSize: '11px',
+    color: '#999',
     margin: 0
+  },
+  storageDetails: {
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f0f0f0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  storageDetailItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  storageDetailLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '13px',
+    color: '#5f6368',
+    fontWeight: '500'
+  },
+  colorDot: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%'
+  },
+  storageDetailValue: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: '2px'
+  },
+  storageSize: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#333'
+  },
+  storagePercent: {
+    fontSize: '11px',
+    color: '#999'
   },
   settingsButton: {
     display: 'flex',

@@ -110,7 +110,7 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    marginLeft: '260px',
+    // marginLeft: '260px',
     display: 'flex',
     flexDirection: 'column'
   },

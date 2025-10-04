@@ -190,5 +190,48 @@ router.delete('/:id', auth, async (req, res) => {
     });
   }
 });
+// GET FILE TYPE STATISTICS
+router.get('/stats', auth, async (req, res) => {
+  try {
+    const files = await File.findAll({
+      where: { userId: req.user.id },
+      attributes: ['mimeType', 'size']
+    });
+
+    const stats = {
+      images: 0,
+      documents: 0,
+      videos: 0,
+      audio: 0,
+      others: 0
+    };
+
+    files.forEach(file => {
+      const mime = file.mimeType.toLowerCase();
+      if (mime.startsWith('image/')) {
+        stats.images += file.size;
+      } else if (mime.includes('pdf') || mime.includes('document') || mime.includes('word') || mime.includes('text')) {
+        stats.documents += file.size;
+      } else if (mime.startsWith('video/')) {
+        stats.videos += file.size;
+      } else if (mime.startsWith('audio/')) {
+        stats.audio += file.size;
+      } else {
+        stats.others += file.size;
+      }
+    });
+
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch statistics'
+    });
+  }
+});
 
 module.exports = router;
