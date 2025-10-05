@@ -103,7 +103,7 @@ const styles = {
     padding: '12px 16px 12px 48px',
     background: '#f1f3f4',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '20px',
     fontSize: '14px',
     outline: 'none',
     transition: 'background 0.2s ease'

@@ -42,8 +42,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-      localStorage.removeItem('token');
-      setToken(null);
+      // localStorage.removeItem('token');
+      // setToken(null);
     } finally {
       setLoading(false);
     }

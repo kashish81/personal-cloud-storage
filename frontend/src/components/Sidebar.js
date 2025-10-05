@@ -9,9 +9,10 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
   
 
   useEffect(() => {
-    // Fetch file statistics
-    fetchFileStats();
-  }, []);
+    if (token) {
+      fetchFileStats();
+    }
+  }, [token]);
 
 const fetchFileStats = async () => {
   try {
@@ -39,6 +40,12 @@ const fetchFileStats = async () => {
   }
 };
 
+const storageUsed = user?.storageUsed || 0;
+  const storageLimit = user?.storageLimit || 5368709120; // 5GB default
+  const storagePercentage = storageLimit > 0 
+    ? Math.min((storageUsed / storageLimit) * 100, 100)
+    : 0;
+
   const formatStorage = (bytes) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -50,6 +57,7 @@ const fetchFileStats = async () => {
   const getPercentage = (value, total) => {
     return ((value / total) * 100).toFixed(1);
   };
+  
 
   const fileTypeColors = {
     images: { color: '#FF6B6B', label: 'Images' },
@@ -59,9 +67,9 @@ const fetchFileStats = async () => {
     others: { color: '#A8DADC', label: 'Others' }
   };
 
-  const storagePercentage = user.storageUsed && user.storageLimit 
-    ? (user.storageUsed / user.storageLimit) * 100 
-    : 0;
+  // const storagePercentage = user?.storageUsed && user?.storageLimit 
+  // ? Math.min((user.storageUsed / user.storageLimit) * 100, 100)
+  // : 0;
 
   const menuItems = [
     { id: 'myfiles', icon: Files, label: 'My Files' },
@@ -135,11 +143,11 @@ const fetchFileStats = async () => {
         </div>
         
         <p style={styles.storageText}>
-          {formatStorage(user.storageUsed)} of {formatStorage(user.storageLimit)}
-        </p>
-        <p style={styles.storagePercentage}>
-          {storagePercentage.toFixed(1)}% used
-        </p>
+    {formatStorage(storageUsed)} of {formatStorage(storageLimit)}
+  </p>
+  <p style={styles.storagePercentage}>
+    {storagePercentage.toFixed(1)}% used
+  </p>
 
         {/* Expanded Details */}
         {storageExpanded && fileStats && (

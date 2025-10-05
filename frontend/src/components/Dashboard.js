@@ -60,18 +60,26 @@ const Dashboard = () => {
           )}
 
           {activeView === 'starred' && (
-            <>
-              <h2 style={styles.viewTitle}>Starred</h2>
-              <p style={styles.comingSoon}>Coming soon...</p>
-            </>
-          )}
+  <>
+    <h2 style={styles.viewTitle}>Starred</h2>
+    <FileList 
+      refreshTrigger={refreshTrigger} 
+      searchQuery={searchQuery}
+      filter="starred"
+    />
+  </>
+)}
 
-          {activeView === 'bin' && (
-            <>
-              <h2 style={styles.viewTitle}>Bin</h2>
-              <p style={styles.comingSoon}>Coming soon...</p>
-            </>
-          )}
+{activeView === 'bin' && (
+  <>
+    <h2 style={styles.viewTitle}>Bin</h2>
+    <FileList 
+      refreshTrigger={refreshTrigger} 
+      searchQuery={searchQuery}
+      filter="bin"
+    />
+  </>
+)}
         </div>
       </div>
 
