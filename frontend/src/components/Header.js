@@ -83,7 +83,7 @@ const styles = {
     position: 'fixed',
     top: 0,
     right: 0,
-    left: '300px',
+    left: '280px',
     zIndex: 100,
     transition: 'left 0.3s ease'
   },
