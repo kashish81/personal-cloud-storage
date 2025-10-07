@@ -33,98 +33,11 @@ const upload = multer({
   }
 });
 
-// STAR/UNSTAR FILE - PUT /api/files/:id/star
-router.put('/:id/star', auth, async (req, res) => {
-  try {
-    const file = await File.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id,
-        isDeleted: false
-      }
-    });
-
-    if (!file) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found'
-      });
-    }
-
-    await file.update({
-      isStarred: !file.isStarred
-    });
-
-    res.json({
-      success: true,
-      message: file.isStarred ? 'File starred' : 'File unstarred',
-      isStarred: file.isStarred
-    });
-  } catch (error) {
-    console.error('Star error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to star file'
-    });
-  }
-});
-
-// GET STARRED FILES - GET /api/files/starred/list
-router.get('/starred/list', auth, async (req, res) => {
-  try {
-    const files = await File.findAll({
-      where: { 
-        userId: req.user.id,
-        isStarred: true,
-        isDeleted: false
-      },
-      order: [['createdAt', 'DESC']],
-      attributes: ['id', 'originalName', 'mimeType', 'size', 'createdAt', 'tags', 'isStarred']
-    });
-
-    res.json({
-      success: true,
-      files: files
-    });
-  } catch (error) {
-    console.error('Get starred files error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch starred files'
-    });
-  }
-});
-
-// GET BIN FILES - GET /api/files/bin/list
-router.get('/bin/list', auth, async (req, res) => {
-  try {
-    const files = await File.findAll({
-      where: { 
-        userId: req.user.id,
-        isDeleted: true
-      },
-      order: [['deletedAt', 'DESC']],
-      attributes: ['id', 'originalName', 'mimeType', 'size', 'deletedAt', 'tags']
-    });
-
-    res.json({
-      success: true,
-      files: files
-    });
-  } catch (error) {
-    console.error('Get bin files error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch bin files'
-    });
-  }
-});
-
 // GET FILE TYPE STATISTICS - GET /api/files/stats
 router.get('/stats', auth, async (req, res) => {
   try {
     const files = await File.findAll({
-      where: { userId: req.user.id, isDeleted: false },
+      where: { userId: req.user.id },
       attributes: ['mimeType', 'size']
     });
 
@@ -169,11 +82,10 @@ router.get('/', auth, async (req, res) => {
   try {
     const files = await File.findAll({
       where: { 
-        userId: req.user.id,
-        isDeleted: false
+        userId: req.user.id
       },
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'originalName', 'mimeType', 'size', 'createdAt', 'tags', 'isStarred']
+      attributes: ['id', 'originalName', 'mimeType', 'size', 'createdAt', 'tags']
     });
 
     res.json({
@@ -268,42 +180,6 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
   }
 });
 
-// RESTORE FILE - PUT /api/files/:id/restore
-router.put('/:id/restore', auth, async (req, res) => {
-  try {
-    const file = await File.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id,
-        isDeleted: true
-      }
-    });
-
-    if (!file) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found in bin'
-      });
-    }
-
-    await file.update({
-      isDeleted: false,
-      deletedAt: null
-    });
-
-    res.json({
-      success: true,
-      message: 'File restored successfully'
-    });
-  } catch (error) {
-    console.error('Restore error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to restore file'
-    });
-  }
-});
-
 // DOWNLOAD FILE - GET /api/files/download/:id
 router.get('/download/:id', auth, async (req, res) => {
   try {
@@ -331,14 +207,13 @@ router.get('/download/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE FILE - Soft delete (move to bin)
+// DELETE FILE - PERMANENT DELETE
 router.delete('/:id', auth, async (req, res) => {
   try {
     const file = await File.findOne({
       where: {
         id: req.params.id,
-        userId: req.user.id,
-        isDeleted: false
+        userId: req.user.id
       }
     });
 
@@ -349,62 +224,29 @@ router.delete('/:id', auth, async (req, res) => {
       });
     }
 
-    await file.update({
-      isDeleted: true,
-      deletedAt: new Date()
+    // Delete physical file
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    // Update user storage
+    const user = await User.findByPk(req.user.id);
+    await user.update({
+      storageUsed: Math.max(0, Number(user.storageUsed) - Number(file.size))
     });
+
+    // Delete from database
+    await file.destroy();
 
     res.json({
       success: true,
-      message: 'File moved to bin'
+      message: 'File deleted successfully'
     });
   } catch (error) {
     console.error('Delete error:', error);
     res.status(500).json({
       success: false,
       message: 'Delete failed'
-    });
-  }
-});
-
-// PERMANENT DELETE - DELETE /api/files/:id/permanent
-router.delete('/:id/permanent', auth, async (req, res) => {
-  try {
-    const file = await File.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id,
-        isDeleted: true
-      }
-    });
-
-    if (!file) {
-      return res.status(404).json({
-        success: false,
-        message: 'File not found in bin'
-      });
-    }
-
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
-
-    const user = await User.findByPk(req.user.id);
-    await user.update({
-      storageUsed: Math.max(0, Number(user.storageUsed) - Number(file.size))
-    });
-
-    await file.destroy();
-
-    res.json({
-      success: true,
-      message: 'File permanently deleted'
-    });
-  } catch (error) {
-    console.error('Permanent delete error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete file'
     });
   }
 });

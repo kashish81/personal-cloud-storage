@@ -1,7 +1,7 @@
 import React from 'react';
-import { X, Download, Trash2, Share2, FileText, Image as ImageIcon, Video, Music, File as FileIcon, Star, RotateCcw } from 'lucide-react';
+import { X, Download, Trash2, Share2, FileText, Image as ImageIcon, Video, Music, File as FileIcon } from 'lucide-react';
 
-const FileDetail = ({ file, onClose, onDownload, onDelete, onStar, onRestore, isBin }) => {
+const FileDetail = ({ file, onClose, onDownload, onDelete, onShare }) => {
   if (!file) {
     return null;
   }
@@ -25,41 +25,40 @@ const FileDetail = ({ file, onClose, onDownload, onDelete, onStar, onRestore, is
   };
 
   const getFilePreview = () => {
-  // Add safety check
-  if (!file || !file.mimeType) {
+    if (!file || !file.mimeType) {
+      return <FileIcon size={80} color="#95a5a6" />;
+    }
+    
+    if (file.mimeType.startsWith('image/')) {
+      return (
+        <div style={styles.imagePreview}>
+          <ImageIcon size={80} color="#667eea" />
+        </div>
+      );
+    } else if (file.mimeType.startsWith('video/')) {
+      return <Video size={80} color="#e74c3c" />;
+    } else if (file.mimeType.startsWith('audio/')) {
+      return <Music size={80} color="#9b59b6" />;
+    } else if (file.mimeType.includes('pdf')) {
+      return <FileText size={80} color="#e74c3c" />;
+    }
     return <FileIcon size={80} color="#95a5a6" />;
-  }
-  
-  if (file.mimeType.startsWith('image/')) {
-    return (
-      <div style={styles.imagePreview}>
-        <ImageIcon size={80} color="#667eea" />
-      </div>
-    );
-  } else if (file.mimeType.startsWith('video/')) {
-    return <Video size={80} color="#e74c3c" />;
-  } else if (file.mimeType.startsWith('audio/')) {
-    return <Music size={80} color="#9b59b6" />;
-  } else if (file.mimeType.includes('pdf')) {
-    return <FileText size={80} color="#e74c3c" />;
-  }
-  return <FileIcon size={80} color="#95a5a6" />;
-};
+  };
 
   const generateDescription = () => {
-  if (!file || !file.mimeType || !file.originalName) {
-    return 'File information unavailable';
-  }
-  
-  const type = file.mimeType.split('/')[0];
-  const extension = file.originalName.split('.').pop()?.toUpperCase() || 'FILE';
-  
-  if (file.tags && file.tags.length > 0) {
-    const mainTags = file.tags.slice(0, 3).join(', ');
-    return `This ${type} file contains ${mainTags} content. Size: ${formatFileSize(file.size)}`;
-  }
-  return `${extension} ${type} file with size ${formatFileSize(file.size)}`;
-};
+    if (!file || !file.mimeType || !file.originalName) {
+      return 'File information unavailable';
+    }
+    
+    const type = file.mimeType.split('/')[0];
+    const extension = file.originalName.split('.').pop()?.toUpperCase() || 'FILE';
+    
+    if (file.tags && file.tags.length > 0) {
+      const mainTags = file.tags.slice(0, 3).join(', ');
+      return `This ${type} file contains ${mainTags} content. Size: ${formatFileSize(file.size)}`;
+    }
+    return `${extension} ${type} file with size ${formatFileSize(file.size)}`;
+  };
 
   return (
     <>
@@ -70,47 +69,29 @@ const FileDetail = ({ file, onClose, onDownload, onDelete, onStar, onRestore, is
         </button>
 
         <div style={styles.content}>
-          {/* File Preview */}
           <div style={styles.previewSection}>
             {getFilePreview()}
           </div>
 
-          {/* File Details */}
           <div style={styles.detailsSection}>
-  <div style={styles.fileNameRow}>
-    <h2 style={styles.fileName}>{file.originalName}</h2>
-    {!isBin && onStar && (
-      <button
-        onClick={() => {onStar(file.id, file.isStarred); 
-            onClose();}}
-        style={styles.starIconButton}
-      >
-        <Star 
-          size={24} 
-          fill={file.isStarred ? '#FFC107' : 'none'}
-          color={file.isStarred ? '#FFC107' : '#ccc'}
-        />
-      </button>
-    )}
-  </div>
+            <h2 style={styles.fileName}>{file?.originalName || 'Unknown File'}</h2>
             
             <div style={styles.metaInfo}>
               <div style={styles.metaItem}>
                 <span style={styles.metaLabel}>Size:</span>
-                <span style={styles.metaValue}>{formatFileSize(file.size)}</span>
+                <span style={styles.metaValue}>{file?.size ? formatFileSize(file.size) : 'Unknown'}</span>
               </div>
               <div style={styles.metaItem}>
                 <span style={styles.metaLabel}>Type:</span>
-                <span style={styles.metaValue}>{file.mimeType}</span>
+                <span style={styles.metaValue}>{file?.mimeType || 'Unknown'}</span>
               </div>
               <div style={styles.metaItem}>
                 <span style={styles.metaLabel}>Created:</span>
-                <span style={styles.metaValue}>{formatDate(file.createdAt)}</span>
+                <span style={styles.metaValue}>{file?.createdAt ? formatDate(file.createdAt) : 'Unknown'}</span>
               </div>
             </div>
           </div>
 
-          {/* AI Tags */}
           {file.tags && file.tags.length > 0 && (
             <div style={styles.tagsSection}>
               <h3 style={styles.sectionTitle}>AI Generated Tags</h3>
@@ -124,53 +105,38 @@ const FileDetail = ({ file, onClose, onDownload, onDelete, onStar, onRestore, is
             </div>
           )}
 
-          {/* Description */}
           <div style={styles.descriptionSection}>
             <h3 style={styles.sectionTitle}>Description</h3>
             <p style={styles.description}>{generateDescription()}</p>
           </div>
 
-          {/* Actions */}
           <div style={styles.actionsSection}>
-            {isBin ? (
-              <>
-                <button 
-                  onClick={() => onRestore(file.id)}
-                  style={styles.actionButton}
-                >
-                  <RotateCcw size={18} />
-                  <span>Restore</span>
-                </button>
-                
-                <button 
-                  onClick={() => onDelete(file.id)}
-                  style={{...styles.actionButton, ...styles.deleteButton}}
-                >
-                  <Trash2 size={18} />
-                  <span>Delete Forever</span>
-                </button>
-              </>
-            ) : (
-              <>
-                
-
-                <button 
-                  onClick={() => onDownload(file.id, file.originalName)}
-                  style={styles.actionButton}
-                >
-                  <Download size={18} />
-                  <span>Download</span>
-                </button>
-                
-                <button 
-                  onClick={() => onDelete(file.id)}
-                  style={{...styles.actionButton, ...styles.deleteButton}}
-                >
-                  <Trash2 size={18} />
-                  <span>Move to Bin</span>
-                </button>
-              </>
-            )}
+            <button 
+              onClick={() => onDownload(file.id, file.originalName)}
+              style={styles.actionButton}
+            >
+              <Download size={18} />
+              <span>Download</span>
+            </button>
+            
+            <button 
+              onClick={() => onShare(file)}
+              style={{...styles.actionButton, ...styles.shareButton}}
+            >
+              <Share2 size={18} />
+              <span>Share</span>
+            </button>
+            
+            <button 
+              onClick={() => {
+                onDelete(file.id);
+                onClose();
+              }}
+              style={{...styles.actionButton, ...styles.deleteButton}}
+            >
+              <Trash2 size={18} />
+              <span>Delete</span>
+            </button>
           </div>
         </div>
       </div>
@@ -233,28 +199,13 @@ const styles = {
   detailsSection: {
     marginBottom: '24px'
   },
-  fileNameRow: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  marginBottom: '16px'
-},
-fileName: {
-  fontSize: '20px',
-  fontWeight: '600',
-  color: '#333',
-  wordBreak: 'break-word',
-  margin: 0,
-  flex: 1
-},
-starIconButton: {
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  padding: '4px',
-  display: 'flex',
-  alignItems: 'center'
-},
+  fileName: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: '16px',
+    wordBreak: 'break-word'
+  },
   metaInfo: {
     display: 'flex',
     flexDirection: 'column',
@@ -337,10 +288,8 @@ starIconButton: {
     cursor: 'pointer',
     transition: 'all 0.2s'
   },
-  starButton: {
-    background: '#fff3cd',
-    color: '#856404',
-    border: '1px solid #ffc107'
+  shareButton: {
+    background: '#3498db'
   },
   deleteButton: {
     background: '#dc3545'

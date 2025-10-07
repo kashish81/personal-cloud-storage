@@ -62,22 +62,20 @@ const Dashboard = () => {
           {activeView === 'starred' && (
   <>
     <h2 style={styles.viewTitle}>Starred</h2>
-    <FileList 
-      refreshTrigger={refreshTrigger} 
-      searchQuery={searchQuery}
-      filter="starred"
-    />
+    <div style={styles.emptyState}>
+      <p style={styles.emptyText}>No starred files yet</p>
+      <p style={styles.emptySubtext}>Star your important files to find them here quickly</p>
+    </div>
   </>
 )}
 
 {activeView === 'bin' && (
   <>
     <h2 style={styles.viewTitle}>Bin</h2>
-    <FileList 
-      refreshTrigger={refreshTrigger} 
-      searchQuery={searchQuery}
-      filter="bin"
-    />
+    <div style={styles.emptyState}>
+      <p style={styles.emptyText}>Bin is empty</p>
+      <p style={styles.emptySubtext}>Deleted files will appear here</p>
+    </div>
   </>
 )}
         </div>
@@ -128,6 +126,11 @@ const styles = {
     padding: '24px 80px',
     overflowY: 'auto',
     background: '#fff'
+  },
+  emptyState: {
+    textAlign: 'center',
+    color: '#5f6368',
+    marginTop: '100px'
   },
   viewTitle: {
     fontSize: '50px',
