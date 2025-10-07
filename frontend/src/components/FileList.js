@@ -319,6 +319,7 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
     gap: '20px'
   },
+
   fileCard: {
     position: 'relative',
     background: 'white',
@@ -330,6 +331,12 @@ const styles = {
     gap: '15px',
     transition: 'all 0.3s ease',
     cursor: 'pointer'
+  },
+
+  fileActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
   },
   fileIcon: {
     minWidth: '50px',

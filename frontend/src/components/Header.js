@@ -74,21 +74,22 @@ const Header = ({ onSearch }) => {
 const styles = {
   header: {
     height: '64px',
-    background: 'white',
     borderBottom: '1px solid #e0e0e0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 24px',
+    background: 'white',
     position: 'fixed',
     top: 0,
-    left: '325px',
     right: 0,
-    zIndex: 100
+    left: '300px',
+    zIndex: 100,
+    transition: 'left 0.3s ease'
   },
   searchForm: {
     position: 'relative',
-    flex: 1,
+    flex: '1 1 0%',
     maxWidth: '720px'
   },
   searchIcon: {
@@ -98,19 +99,27 @@ const styles = {
     transform: 'translateY(-50%)',
     color: '#5f6368'
   },
+  searchContainer: {
+    flex: 1,
+    maxWidth: '600px',
+    margin: '0 20px'
+  },
+
   searchInput: {
     width: '100%',
     padding: '12px 16px 12px 48px',
-    background: '#f1f3f4',
+    background: 'rgb(241, 243, 244)',
     border: 'none',
     borderRadius: '20px',
     fontSize: '14px',
     outline: 'none',
-    transition: 'background 0.2s ease'
+    transition: 'background 0.2s',
   },
+
   userSection: {
-    position: 'relative',
-    marginLeft: '20px'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
   },
   userButton: {
     display: 'flex',

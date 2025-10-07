@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon, ChevronDown, ChevronUp, Menu, X  } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) => {
-  const { user, token } = useAuth();
   const [storageExpanded, setStorageExpanded] = useState(false);
   const [fileStats, setFileStats] = useState(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, token } = useAuth();
   
+  const sidebarClasses = `sidebar ${isMobileMenuOpen && isMobile ? 'sidebar-open' : ''}`;
+  const overlayClasses = `mobile-overlay ${isMobileMenuOpen && isMobile ? 'show' : ''}`;
 
   useEffect(() => {
     if (token) {
@@ -79,7 +84,36 @@ const storageUsed = user?.storageUsed || 0;
   ];
 
   return (
-    <div style={styles.sidebar}>
+    <>
+    {/* Mobile Menu Button */}
+    {isMobile && (
+      <button 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        style={styles.mobileMenuButton}
+      >
+        <Menu size={24} />
+      </button>
+    )}
+
+      {/* Overlay for mobile */}
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className={overlayClasses}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+    <div style={{
+        ...styles.sidebar,
+        ...(isMobileMenuOpen ? styles.sidebarOpen : {})
+      }}>
+        {/* Close button for mobile */}
+        <button 
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={styles.mobileCloseButton}
+        >
+          <X size={24} />
+        </button>
+
       {/* Logo */}
       <div style={styles.logoSection}>
         <div style={styles.logo}>
@@ -91,12 +125,16 @@ const storageUsed = user?.storageUsed || 0;
           <span style={styles.logoText}>AI Cloud Storage</span>
         </div>
       </div>
+      
 
       {/* New Button */}
-      <button onClick={onUploadClick} style={styles.newButton}>
-        <Plus size={24} />
-        <span>New</span>
-      </button>
+      <button onClick={() => {
+          onUploadClick();
+          setIsMobileMenuOpen(false);
+        }} style={styles.newButton}>
+          <Plus size={24} />
+          <span>New</span>
+        </button>
 
       {/* Menu Items */}
       <nav style={styles.menuGrid}>
@@ -185,19 +223,65 @@ const storageUsed = user?.storageUsed || 0;
         <span>Settings</span>
       </button>
     </div>
+    </>
   );
 };
 
 const styles = {
+  mobileMenuButton: {
+    display: 'none',
+    position: 'fixed',
+    top: '20px',
+    left: '20px',
+    zIndex: 1001,
+    background: 'white',
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    padding: '10px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    '@media (max-width: 768px)': {
+      display: 'flex'
+    }
+  },
+  mobileOverlay: {
+    display: 'none',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 999
+  },
+  mobileCloseButton: {
+    display: 'none',
+    position: 'absolute',
+    top: '20px',
+    right: '20px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px',
+    color: '#333'
+  },
   sidebar: {
-    width: '300px',
+    width: '280px',
     height: '100vh',
     background: '#f8f9fa',
     borderRight: '1px solid #e0e0e0',
     display: 'flex',
     flexDirection: 'column',
     padding: '20px 12px',
-    overflowY: 'auto'
+    position: 'fixed',
+    left: 0,
+    top: 0,
+    overflowY: 'auto',
+    transition: 'transform 0.3s ease',
+    zIndex: 1000
+  },
+  sidebarOpen: {
+    transform: 'translateX(0)'
   },
   logoSection: {
     marginBottom: '24px',

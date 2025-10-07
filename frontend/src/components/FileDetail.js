@@ -159,11 +159,19 @@ const styles = {
     top: 0,
     right: 0,
     width: '450px',
+    maxWidth: '100vw',
     height: '100vh',
     background: 'white',
     boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
     zIndex: 1000,
     overflowY: 'auto'
+  },
+
+  actionsSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    marginTop: '32px'
   },
   closeButton: {
     position: 'absolute',

@@ -112,13 +112,15 @@ const styles = {
     display: 'flex',
     height: '100vh',
     background: '#fff',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    position: 'relative'
   },
   mainContent: {
     flex: 1,
-    // marginLeft: '260px',
+    marginLeft: '250px',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    transition: 'margin-left 0.3s ease'
   },
   content: {
     flex: 1,
@@ -127,23 +129,32 @@ const styles = {
     overflowY: 'auto',
     background: '#fff'
   },
-  emptyState: {
-    textAlign: 'center',
-    color: '#5f6368',
-    marginTop: '100px'
-  },
   viewTitle: {
-    fontSize: '50px',
+    fontSize: '45px',
     fontWeight: '400',
     color: '#202124',
     marginBottom: '24px',
     marginTop: 0
   },
-  comingSoon: {
+  emptyState: {
     textAlign: 'center',
-    color: '#5f6368',
-    fontSize: '16px',
+    padding: '60px 20px',
     marginTop: '40px'
+  },
+  emptyIcon: {
+    fontSize: '60px',
+    marginBottom: '20px'
+  },
+  emptyText: {
+    fontSize: '18px',
+    fontWeight: '500',
+    color: '#666',
+    margin: '0 0 10px 0'
+  },
+  emptySubtext: {
+    fontSize: '14px',
+    color: '#999',
+    margin: 0
   },
   modal: {
     position: 'fixed',
@@ -155,7 +166,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000
+    zIndex: 1000,
+    padding: '20px'
   },
   modalContent: {
     background: 'white',
