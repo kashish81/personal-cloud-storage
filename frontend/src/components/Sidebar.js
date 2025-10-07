@@ -83,7 +83,11 @@ const storageUsed = user?.storageUsed || 0;
       {/* Logo */}
       <div style={styles.logoSection}>
         <div style={styles.logo}>
-          <HardDrive size={32} color="#667eea" />
+          <img 
+            src={require('../assets/logo.png')} 
+            alt="Logo" 
+            style={{ width: '32px', height: '32px' }} 
+          />
           <span style={styles.logoText}>AI Cloud Storage</span>
         </div>
       </div>
