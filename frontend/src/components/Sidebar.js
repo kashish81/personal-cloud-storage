@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon, ChevronDown, ChevronUp, Menu, X  } from 'lucide-react';
+import { Plus, Files, Clock, Star, Trash2, HardDrive, Settings as SettingsIcon, ChevronDown, ChevronUp, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
-const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) => {
+const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const [storageExpanded, setStorageExpanded] = useState(false);
   const [fileStats, setFileStats] = useState(null);
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 1024px)');
   const { user, token } = useAuth();
-  
-  const sidebarClasses = `sidebar ${isMobileMenuOpen && isMobile ? 'sidebar-open' : ''}`;
-  const overlayClasses = `mobile-overlay ${isMobileMenuOpen && isMobile ? 'show' : ''}`;
 
   useEffect(() => {
     if (token) {
@@ -19,34 +15,33 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick }) =
     }
   }, [token]);
 
-const fetchFileStats = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/files/stats', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  const fetchFileStats = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/files/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setFileStats(data.stats);
       }
-    });
-
-    const data = await response.json();
-    if (data.success) {
-      setFileStats(data.stats);
+    } catch (error) {
+      console.error('Fetch stats error:', error);
+      setFileStats({
+        images: 0,
+        documents: 0,
+        videos: 0,
+        audio: 0,
+        others: 0
+      });
     }
-  } catch (error) {
-    console.error('Fetch stats error:', error);
-    // Fallback to empty stats
-    setFileStats({
-      images: 0,
-      documents: 0,
-      videos: 0,
-      audio: 0,
-      others: 0
-    });
-  }
-};
+  };
 
-const storageUsed = user?.storageUsed || 0;
-  const storageLimit = user?.storageLimit || 5368709120; // 5GB default
+  const storageUsed = user?.storageUsed || 0;
+  const storageLimit = user?.storageLimit || 5368709120;
   const storagePercentage = storageLimit > 0 
     ? Math.min((storageUsed / storageLimit) * 100, 100)
     : 0;
@@ -62,7 +57,6 @@ const storageUsed = user?.storageUsed || 0;
   const getPercentage = (value, total) => {
     return ((value / total) * 100).toFixed(1);
   };
-  
 
   const fileTypeColors = {
     images: { color: '#FF6B6B', label: 'Images' },
@@ -72,10 +66,6 @@ const storageUsed = user?.storageUsed || 0;
     others: { color: '#A8DADC', label: 'Others' }
   };
 
-  // const storagePercentage = user?.storageUsed && user?.storageLimit 
-  // ? Math.min((user.storageUsed / user.storageLimit) * 100, 100)
-  // : 0;
-
   const menuItems = [
     { id: 'myfiles', icon: Files, label: 'My Files' },
     { id: 'recent', icon: Clock, label: 'Recent' },
@@ -83,179 +73,155 @@ const storageUsed = user?.storageUsed || 0;
     { id: 'bin', icon: Trash2, label: 'Bin' }
   ];
 
+  const handleMenuClick = (itemId) => {
+    onViewChange(itemId);
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
   return (
     <>
-    {/* Mobile Menu Button */}
-    {isMobile && (
-      <button 
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        style={styles.mobileMenuButton}
-      >
-        <Menu size={24} />
-      </button>
-    )}
-
-      {/* Overlay for mobile */}
+      {/* Mobile Overlay */}
       {isMobile && isMobileMenuOpen && (
-        <div 
-          className={overlayClasses}
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
+        <div style={styles.overlay} onClick={() => setIsMobileMenuOpen(false)} />
       )}
-    <div style={{
+
+      {/* Sidebar */}
+      <div style={{
         ...styles.sidebar,
-        ...(isMobileMenuOpen ? styles.sidebarOpen : {})
+        transform: isMobile && !isMobileMenuOpen ? 'translateX(-100%)' : 'translateX(0)'
       }}>
         {/* Close button for mobile */}
-        <button 
-          onClick={() => setIsMobileMenuOpen(false)}
-          style={styles.mobileCloseButton}
-        >
-          <X size={24} />
-        </button>
+        {isMobile && (
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={styles.mobileCloseButton}
+          >
+            <X size={24} />
+          </button>
+        )}
 
-      {/* Logo */}
-      <div style={styles.logoSection}>
-        <div style={styles.logo}>
-          <img 
-            src={require('../assets/logo.png')} 
-            alt="Logo" 
-            style={{ width: '32px', height: '32px' }} 
-          />
-          <span style={styles.logoText}>AI Cloud Storage</span>
+        {/* Logo */}
+        <div style={styles.logoSection}>
+          <div style={styles.logo}>
+            <HardDrive size={32} color="#667eea" />
+            <span style={styles.logoText}>AI Cloud Storage</span>
+          </div>
         </div>
-      </div>
-      
 
-      {/* New Button */}
-      <button onClick={() => {
+        {/* New Button */}
+        <button onClick={() => {
           onUploadClick();
-          setIsMobileMenuOpen(false);
+          if (isMobile) setIsMobileMenuOpen(false);
         }} style={styles.newButton}>
           <Plus size={24} />
           <span>New</span>
         </button>
 
-      {/* Menu Items */}
-      <nav style={styles.menuGrid}>
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onViewChange(item.id)}
-            style={{
-              ...styles.menuItem,
-              ...(activeView === item.id ? styles.menuItemActive : {})
-            }}
+        {/* Menu Items */}
+        <nav style={styles.menuGrid}>
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleMenuClick(item.id)}
+              style={{
+                ...styles.menuItem,
+                ...(activeView === item.id ? styles.menuItemActive : {})
+              }}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Storage Section */}
+        <div style={styles.storageSection}>
+          <button 
+            onClick={() => setStorageExpanded(!storageExpanded)}
+            style={styles.storageHeader}
           >
-            <item.icon size={20} />
-            <span>{item.label}</span>
+            <div style={styles.storageHeaderLeft}>
+              <HardDrive size={20} />
+              <span>Storage</span>
+            </div>
+            {storageExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </button>
-        ))}
-      </nav>
-
-      {/* Enhanced Storage Section */}
-      <div style={styles.storageSection}>
-        <button 
-          onClick={() => setStorageExpanded(!storageExpanded)}
-          style={styles.storageHeader}
-        >
-          <div style={styles.storageHeaderLeft}>
-            <HardDrive size={20} />
-            <span>Storage</span>
+          
+          <div style={styles.storageBar}>
+            {fileStats && Object.entries(fileStats).map(([type, size]) => {
+              const percentage = (size / storageLimit) * 100;
+              return (
+                <div
+                  key={type}
+                  style={{
+                    ...styles.storageSegment,
+                    width: `${percentage}%`,
+                    background: fileTypeColors[type].color
+                  }}
+                  title={`${fileTypeColors[type].label}: ${formatStorage(size)}`}
+                />
+              );
+            })}
           </div>
-          {storageExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-        
-        {/* Multi-colored Progress Bar */}
-        <div style={styles.storageBar}>
-          {fileStats && Object.entries(fileStats).map(([type, size]) => {
-            const percentage = (size / user.storageLimit) * 100;
-            return (
-              <div
-                key={type}
-                style={{
-                  ...styles.storageSegment,
-                  width: `${percentage}%`,
-                  background: fileTypeColors[type].color
-                }}
-                title={`${fileTypeColors[type].label}: ${formatStorage(size)}`}
-              />
-            );
-          })}
+          
+          <p style={styles.storageText}>
+            {formatStorage(storageUsed)} of {formatStorage(storageLimit)}
+          </p>
+          <p style={styles.storagePercentage}>
+            {storagePercentage.toFixed(1)}% used
+          </p>
+
+          {storageExpanded && fileStats && (
+            <div style={styles.storageDetails}>
+              {Object.entries(fileStats).map(([type, size]) => (
+                <div key={type} style={styles.storageDetailItem}>
+                  <div style={styles.storageDetailLabel}>
+                    <div 
+                      style={{
+                        ...styles.colorDot,
+                        background: fileTypeColors[type].color
+                      }}
+                    />
+                    <span>{fileTypeColors[type].label}</span>
+                  </div>
+                  <div style={styles.storageDetailValue}>
+                    <span style={styles.storageSize}>{formatStorage(size)}</span>
+                    <span style={styles.storagePercent}>
+                      {getPercentage(size, storageUsed)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        
-        <p style={styles.storageText}>
-    {formatStorage(storageUsed)} of {formatStorage(storageLimit)}
-  </p>
-  <p style={styles.storagePercentage}>
-    {storagePercentage.toFixed(1)}% used
-  </p>
 
-        {/* Expanded Details */}
-        {storageExpanded && fileStats && (
-          <div style={styles.storageDetails}>
-            {Object.entries(fileStats).map(([type, size]) => (
-              <div key={type} style={styles.storageDetailItem}>
-                <div style={styles.storageDetailLabel}>
-                  <div 
-                    style={{
-                      ...styles.colorDot,
-                      background: fileTypeColors[type].color
-                    }}
-                  />
-                  <span>{fileTypeColors[type].label}</span>
-                </div>
-                <div style={styles.storageDetailValue}>
-                  <span style={styles.storageSize}>{formatStorage(size)}</span>
-                  <span style={styles.storagePercent}>
-                    {getPercentage(size, user.storageUsed)}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Settings Button */}
+        <button onClick={() => {
+          onSettingsClick();
+          if (isMobile) setIsMobileMenuOpen(false);
+        }} style={styles.settingsButton}>
+          <SettingsIcon size={20} />
+          <span>Settings</span>
+        </button>
       </div>
-
-      {/* Settings Button */}
-      <button onClick={onSettingsClick} style={styles.settingsButton}>
-        <SettingsIcon size={20} />
-        <span>Settings</span>
-      </button>
-    </div>
     </>
   );
 };
 
 const styles = {
-  mobileMenuButton: {
-    display: 'none',
-    position: 'fixed',
-    top: '20px',
-    left: '20px',
-    zIndex: 1001,
-    background: 'white',
-    border: '1px solid #e0e0e0',
-    borderRadius: '8px',
-    padding: '10px',
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    '@media (max-width: 768px)': {
-      display: 'flex'
-    }
-  },
-  mobileOverlay: {
-    display: 'none',
+  overlay: {
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     background: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 999
+    zIndex: 998
   },
   mobileCloseButton: {
-    display: 'none',
     position: 'absolute',
     top: '20px',
     right: '20px',
@@ -263,7 +229,8 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     padding: '8px',
-    color: '#333'
+    color: '#333',
+    zIndex: 1001
   },
   sidebar: {
     width: '280px',
@@ -278,10 +245,7 @@ const styles = {
     top: 0,
     overflowY: 'auto',
     transition: 'transform 0.3s ease',
-    zIndex: 1000
-  },
-  sidebarOpen: {
-    transform: 'translateX(0)'
+    zIndex: 999
   },
   logoSection: {
     marginBottom: '24px',

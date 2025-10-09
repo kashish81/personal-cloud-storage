@@ -4,6 +4,7 @@ import Header from './Header';
 import FileUpload from './FileUpload';
 import FileList from './FileList';
 import Settings from './Settings';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 const Dashboard = () => {
   const [activeView, setActiveView] = useState('myfiles');
@@ -11,6 +12,8 @@ const Dashboard = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 1024px)');
 
   const handleUploadSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -23,20 +26,25 @@ const Dashboard = () => {
 
   return (
     <div style={styles.dashboard}>
-      {/* Sidebar */}
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
         onUploadClick={() => setShowUploadModal(true)}
         onSettingsClick={() => setShowSettings(true)}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      {/* Main Content Area */}
-      <div style={styles.mainContent}>
-        {/* Header */}
-        <Header onSearch={handleSearch} />
+      <div style={{
+        ...styles.mainContent,
+        marginLeft: isMobile ? 0 : '280px'
+      }}>
+        <Header 
+          onSearch={handleSearch}
+          isMobile={isMobile}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+        />
 
-        {/* Content */}
         <div style={styles.content}>
           {activeView === 'myfiles' && (
             <>
@@ -60,28 +68,27 @@ const Dashboard = () => {
           )}
 
           {activeView === 'starred' && (
-  <>
-    <h2 style={styles.viewTitle}>Starred</h2>
-    <div style={styles.emptyState}>
-      <p style={styles.emptyText}>No starred files yet</p>
-      <p style={styles.emptySubtext}>Star your important files to find them here quickly</p>
-    </div>
-  </>
-)}
+            <>
+              <h2 style={styles.viewTitle}>Starred</h2>
+              <div style={styles.emptyState}>
+                <p style={styles.emptyText}>No starred files yet</p>
+                <p style={styles.emptySubtext}>Star your important files to find them here quickly</p>
+              </div>
+            </>
+          )}
 
-{activeView === 'bin' && (
-  <>
-    <h2 style={styles.viewTitle}>Bin</h2>
-    <div style={styles.emptyState}>
-      <p style={styles.emptyText}>Bin is empty</p>
-      <p style={styles.emptySubtext}>Deleted files will appear here</p>
-    </div>
-  </>
-)}
+          {activeView === 'bin' && (
+            <>
+              <h2 style={styles.viewTitle}>Bin</h2>
+              <div style={styles.emptyState}>
+                <p style={styles.emptyText}>Bin is empty</p>
+                <p style={styles.emptySubtext}>Deleted files will appear here</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Upload Modal */}
       {showUploadModal && (
         <div style={styles.modal}>
           <div style={styles.modalContent}>
@@ -99,7 +106,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Settings Modal */}
       {showSettings && (
         <Settings onClose={() => setShowSettings(false)} />
       )}
@@ -117,7 +123,6 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    marginLeft: '250px',
     display: 'flex',
     flexDirection: 'column',
     transition: 'margin-left 0.3s ease'
@@ -140,10 +145,6 @@ const styles = {
     textAlign: 'center',
     padding: '60px 20px',
     marginTop: '40px'
-  },
-  emptyIcon: {
-    fontSize: '60px',
-    marginBottom: '20px'
   },
   emptyText: {
     fontSize: '18px',

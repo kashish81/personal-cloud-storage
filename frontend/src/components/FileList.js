@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Trash2, File, FileText, Image, Video, Music, Archive, Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import FileDetail from './FileDetail';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 const FileList = ({ refreshTrigger, searchQuery }) => {
   const [allFiles, setAllFiles] = useState([]);
@@ -10,6 +11,8 @@ const FileList = ({ refreshTrigger, searchQuery }) => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const { token } = useAuth();
+  const isMobile = useMediaQuery('(max-width: 640px)');
+  const isTablet = useMediaQuery('(min-width: 641px) and (max-width: 1024px)');
 
   useEffect(() => {
     fetchFiles();
@@ -159,6 +162,12 @@ const FileList = ({ refreshTrigger, searchQuery }) => {
     });
   };
 
+  const getGridColumns = () => {
+    if (isMobile) return 'repeat(2, 1fr)';
+    if (isTablet) return 'repeat(3, 1fr)';
+    return 'repeat(auto-fill, minmax(320px, 1fr))';
+  };
+
   if (loading) {
     return <div style={styles.loading}>Loading files...</div>;
   }
@@ -197,7 +206,10 @@ const FileList = ({ refreshTrigger, searchQuery }) => {
         </p>
       )}
 
-      <div style={styles.fileGrid}>
+      <div style={{
+        ...styles.fileGrid,
+        gridTemplateColumns: getGridColumns()
+      }}>
         {filteredFiles.map((file) => (
           <div 
             key={file.id} 
@@ -215,16 +227,16 @@ const FileList = ({ refreshTrigger, searchQuery }) => {
               
               {file.tags && file.tags.length > 0 && (
                 <div style={styles.tagsContainer}>
-                  {file.tags.slice(0, 5).map((tag, index) => (
+                  {file.tags.slice(0, 10).map((tag, index) => (
                     <span key={index} style={styles.tag}>
                       {tag}
                     </span>
                   ))}
-                  {file.tags.length > 5 && (
+                  {/* {file.tags.length > 3 && (
                     <span style={styles.moreTagsIndicator}>
-                      +{file.tags.length - 5}
+                      +{file.tags.length - 3}
                     </span>
-                  )}
+                  )} */}
                 </div>
               )}
             </div>
@@ -316,10 +328,8 @@ const styles = {
   },
   fileGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
     gap: '20px'
   },
-
   fileCard: {
     position: 'relative',
     background: 'white',
@@ -331,12 +341,6 @@ const styles = {
     gap: '15px',
     transition: 'all 0.3s ease',
     cursor: 'pointer'
-  },
-
-  fileActions: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
   },
   fileIcon: {
     minWidth: '50px',

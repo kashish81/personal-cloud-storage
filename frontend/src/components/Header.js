@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Search, LogOut, User } from 'lucide-react';
+import { Search, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const Header = ({ onSearch }) => {
+const Header = ({ onSearch, isMobile, onMenuClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const { user, logout } = useAuth();
@@ -15,7 +15,17 @@ const Header = ({ onSearch }) => {
   };
 
   return (
-    <div style={styles.header}>
+    <div style={{
+      ...styles.header,
+      left: isMobile ? 0 : '280px'
+    }}>
+      {/* Hamburger Menu for Mobile */}
+      {isMobile && (
+        <button onClick={onMenuClick} style={styles.hamburgerButton}>
+          <Menu size={24} />
+        </button>
+      )}
+
       {/* Search Bar */}
       <form onSubmit={handleSearch} style={styles.searchForm}>
         <Search size={20} style={styles.searchIcon} />
@@ -37,7 +47,9 @@ const Header = ({ onSearch }) => {
           <div style={styles.avatar}>
             {user.username.charAt(0).toUpperCase()}
           </div>
-          <span style={styles.username}>{user.username}</span>
+          {!isMobile && (
+            <span style={styles.username}>{user.username}</span>
+          )}
         </div>
 
         {showDropdown && (
@@ -83,9 +95,19 @@ const styles = {
     position: 'fixed',
     top: 0,
     right: 0,
-    left: '280px',
     zIndex: 100,
-    transition: 'left 0.3s ease'
+    transition: 'left 0.3s ease',
+    gap: '16px'
+  },
+  hamburgerButton: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px',
+    color: '#5f6368',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   searchForm: {
     position: 'relative',
@@ -99,12 +121,6 @@ const styles = {
     transform: 'translateY(-50%)',
     color: '#5f6368'
   },
-  searchContainer: {
-    flex: 1,
-    maxWidth: '600px',
-    margin: '0 20px'
-  },
-
   searchInput: {
     width: '100%',
     padding: '12px 16px 12px 48px',
@@ -113,13 +129,13 @@ const styles = {
     borderRadius: '20px',
     fontSize: '14px',
     outline: 'none',
-    transition: 'background 0.2s',
+    transition: 'background 0.2s'
   },
-
   userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px'
+    gap: '16px',
+    position: 'relative'
   },
   userButton: {
     display: 'flex',
@@ -155,7 +171,7 @@ const styles = {
     background: 'white',
     borderRadius: '8px',
     boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-    minWidth: '320px',
+    minWidth: '280px',
     padding: '16px',
     zIndex: 1000
   },
@@ -166,39 +182,39 @@ const styles = {
     marginBottom: '16px'
   },
   avatarLarge: {
-    width: '64px',
-    height: '64px',
+    width: '48px',
+    height: '48px',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: 'white',
-    fontSize: '24px',
+    fontSize: '20px',
     fontWeight: '600'
   },
   dropdownName: {
     margin: '0 0 4px 0',
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: '600',
     color: '#202124'
   },
   dropdownEmail: {
     margin: 0,
-    fontSize: '14px',
+    fontSize: '12px',
     color: '#5f6368'
   },
   divider: {
     height: '1px',
     background: '#e0e0e0',
-    margin: '16px 0'
+    margin: '12px 0'
   },
   logoutButton: {
     width: '100%',
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '12px 16px',
+    padding: '10px 12px',
     background: 'none',
     border: 'none',
     borderRadius: '4px',
