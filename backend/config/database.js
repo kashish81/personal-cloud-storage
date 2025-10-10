@@ -1,48 +1,57 @@
-const { Sequelize } = require('sequelize');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-// Create Sequelize instance
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'cloud_storage',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    dialect: 'postgres',
-    logging: false, // Change to console.log to see SQL queries
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    dialectOptions: {
-      // Connection timeout
-      connectTimeout: 60000
-    }
-  }
-);
+// Create PostgreSQL Pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { 
+    rejectUnauthorized: false 
+  } : false,
+  max: 10,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
+});
 
-// Test database connection function
+// Test database connection
 const testConnection = async () => {
   try {
-    await sequelize.authenticate();
+    const client = await pool.connect();
+    const result = await client.query('SELECT NOW()');
     console.log('✅ PostgreSQL Connected Successfully!');
+    console.log('📅 Database Time:', result.rows[0].now);
+    client.release();
     return true;
   } catch (error) {
     console.error('❌ PostgreSQL Connection Error:', error.message);
-    console.error('Check your .env file settings:');
-    console.error('- DB_NAME:', process.env.DB_NAME);
-    console.error('- DB_USER:', process.env.DB_USER);
-    console.error('- DB_HOST:', process.env.DB_HOST);
-    console.error('- DB_PORT:', process.env.DB_PORT);
+    console.error('\nCheck these settings:');
+    console.error('1. DATABASE_URL is set in .env file');
+    console.error('2. Supabase connection string is correct');
+    console.error('3. Database password is correct');
+    console.error('4. Network connection is working');
     throw error;
   }
 };
 
-// Export both sequelize and testConnection
+// Handle pool errors
+pool.on('error', (err, client) => {
+  console.error('Unexpected database error:', err);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  try {
+    await pool.end();
+    console.log('Database pool closed');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error closing pool:', err);
+    process.exit(1);
+  }
+});
+
 module.exports = { 
-  sequelize, 
-  testConnection 
+  pool,
+  testConnection,
+  query: (text, params) => pool.query(text, params)
 };
