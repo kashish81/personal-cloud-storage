@@ -3,19 +3,20 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const File = require('../models/File');
-const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { pool } = require('../config/database');
+const { authenticateToken } = require('./auth');
 const { generateTags } = require('../services/aiTagging');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -26,113 +27,12 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 1000 * 1024 * 1024 // 100MB max file size
+    fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
     cb(null, true);
   }
 });
-
-// GET FILE TYPE STATISTICS - GET /api/files/stats
-router.get('/stats', auth, async (req, res) => {
-  try {
-    const files = await File.findAll({
-      where: { userId: req.user.id },
-      attributes: ['mimeType', 'size']
-    });
-
-    const stats = {
-      images: 0,
-      documents: 0,
-      videos: 0,
-      audio: 0,
-      others: 0
-    };
-
-    files.forEach(file => {
-      const mime = file.mimeType.toLowerCase();
-      if (mime.startsWith('image/')) {
-        stats.images += parseInt(file.size);
-      } else if (mime.includes('pdf') || mime.includes('document') || mime.includes('word') || mime.includes('text')) {
-        stats.documents += parseInt(file.size);
-      } else if (mime.startsWith('video/')) {
-        stats.videos += parseInt(file.size);
-      } else if (mime.startsWith('audio/')) {
-        stats.audio += parseInt(file.size);
-      } else {
-        stats.others += parseInt(file.size);
-      }
-    });
-
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch statistics'
-    });
-  }
-});
-
-// GET ALL FILES - GET /api/files
-router.get('/', auth, async (req, res) => {
-  try {
-    const files = await File.findAll({
-      where: { 
-        userId: req.user.id
-      },
-      order: [['createdAt', 'DESC']],
-      attributes: ['id', 'originalName', 'mimeType', 'size', 'createdAt', 'tags']
-    });
-
-    res.json({
-      success: true,
-      files: files
-    });
-  } catch (error) {
-    console.error('Get files error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch files'
-    });
-  }
-});
-
-// UPLOAD FILE - POST /api/files/upload
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded'
-      });
-    }
-
-    const userId = req.user.id;
-    const user = await User.findByPk(userId);
-
-    const currentStorage = Number(user.storageUsed) || 0;
-    const fileSize = Number(req.file.size) || 0;
-    const newStorageUsed = currentStorage + fileSize;
-
-    if (!Number.isSafeInteger(newStorageUsed) || newStorageUsed < 0) {
-      fs.unlinkSync(req.file.path);
-      return res.status(500).json({
-        success: false,
-        message: 'Storage calculation error'
-      });
-    }
-
-    if (newStorageUsed > user.storageLimit) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({
-        success: false,
-        message: 'Storage limit exceeded'
-      });
-    }
 
     // Generate AI tags
     console.log('Generating AI tags for:', req.file.originalname);
@@ -150,93 +50,171 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       tags: tags
     });
 
-    // Update user's storage
-    await user.update({
-      storageUsed: newStorageUsed
-    });
+    const generateDescription = (filename, mimeType, tags) => {
+  const type = mimeType.split('/')[0];
+  const extension = path.extname(filename).substring(1).toUpperCase();
+  
+  if (tags.length > 0) {
+    return `This ${type} file contains ${tags.slice(0, 3).join(', ')} content. Format: ${extension}`;
+  }
+  return `${extension} ${type} file uploaded to cloud storage.`;
+};
 
-    res.json({
+// ===== UPLOAD FILE =====
+router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const userId = req.user.id;
+    const { originalname, filename, mimetype, size } = req.file;
+
+    const tags = generateTags(originalname, mimetype);
+    const description = generateDescription(originalname, mimetype, tags);
+
+    const result = await pool.query(
+      `INSERT INTO files (user_id, original_name, stored_name, mime_type, size, tags, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [userId, originalname, filename, mimetype, size, tags, description]
+    );
+
+    const fileRecord = result.rows[0];
+
+    res.status(201).json({
       success: true,
       message: 'File uploaded successfully',
       file: {
-        id: file.id,
-        originalName: file.originalName,
-        size: file.size,
-        mimeType: file.mimeType,
-        tags: file.tags,
-        createdAt: file.createdAt
+        id: fileRecord.id,
+        originalName: fileRecord.original_name,
+        mimeType: fileRecord.mime_type,
+        size: fileRecord.size,
+        tags: fileRecord.tags,
+        description: fileRecord.description,
+        createdAt: fileRecord.created_at
       }
     });
-
   } catch (error) {
     console.error('Upload error:', error);
+    
     if (req.file) {
-      fs.unlinkSync(req.file.path);
+      const filePath = path.join(uploadsDir, req.file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
+
     res.status(500).json({
       success: false,
-      message: 'Upload failed'
+      message: 'File upload failed',
+      error: error.message
     });
   }
 });
 
-// DOWNLOAD FILE - GET /api/files/download/:id
-router.get('/download/:id', auth, async (req, res) => {
+// ===== GET ALL FILES =====
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    const file = await File.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id
-      }
-    });
+    const userId = req.user.id;
 
-    if (!file) {
+    const result = await pool.query(
+      'SELECT * FROM files WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+
+    const files = result.rows.map(file => ({
+      id: file.id,
+      originalName: file.original_name,
+      mimeType: file.mime_type,
+      size: file.size,
+      tags: file.tags,
+      description: file.description,
+      createdAt: file.created_at
+    }));
+
+    res.json({
+      success: true,
+      files: files
+    });
+  } catch (error) {
+    console.error('Fetch files error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch files',
+      error: error.message
+    });
+  }
+});
+
+// ===== DOWNLOAD FILE =====
+router.get('/download/:id', authenticateToken, async (req, res) => {
+  try {
+    const fileId = req.params.id;
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      'SELECT * FROM files WHERE id = $1 AND user_id = $2',
+      [fileId, userId]
+    );
+
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'File not found'
       });
     }
 
-    res.download(file.path, file.originalName);
+    const file = result.rows[0];
+    const filePath = path.join(uploadsDir, file.stored_name);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found on server'
+      });
+    }
+
+    res.download(filePath, file.original_name);
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({
       success: false,
-      message: 'Download failed'
+      message: 'File download failed',
+      error: error.message
     });
   }
 });
 
-// DELETE FILE - PERMANENT DELETE
-router.delete('/:id', auth, async (req, res) => {
+// ===== DELETE FILE =====
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const file = await File.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id
-      }
-    });
+    const fileId = req.params.id;
+    const userId = req.user.id;
 
-    if (!file) {
+    const result = await pool.query(
+      'SELECT * FROM files WHERE id = $1 AND user_id = $2',
+      [fileId, userId]
+    );
+
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'File not found'
       });
     }
 
-    // Delete physical file
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+    const file = result.rows[0];
+
+    const filePath = path.join(uploadsDir, file.stored_name);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
-    // Update user storage
-    const user = await User.findByPk(req.user.id);
-    await user.update({
-      storageUsed: Math.max(0, Number(user.storageUsed) - Number(file.size))
-    });
-
-    // Delete from database
-    await file.destroy();
+    await pool.query('DELETE FROM files WHERE id = $1', [fileId]);
 
     res.json({
       success: true,
@@ -246,7 +224,58 @@ router.delete('/:id', auth, async (req, res) => {
     console.error('Delete error:', error);
     res.status(500).json({
       success: false,
-      message: 'Delete failed'
+      message: 'File deletion failed',
+      error: error.message
+    });
+  }
+});
+
+// ===== SEARCH FILES =====
+router.get('/search', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { q } = req.query;
+
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query required'
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT * FROM files 
+       WHERE user_id = $1 
+       AND (
+         original_name ILIKE $2 
+         OR description ILIKE $2 
+         OR $3 = ANY(tags)
+       )
+       ORDER BY created_at DESC`,
+      [userId, `%${q}%`, q]
+    );
+
+    const files = result.rows.map(file => ({
+      id: file.id,
+      originalName: file.original_name,
+      mimeType: file.mime_type,
+      size: file.size,
+      tags: file.tags,
+      description: file.description,
+      createdAt: file.created_at
+    }));
+
+    res.json({
+      success: true,
+      count: files.length,
+      files: files
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Search failed',
+      error: error.message
     });
   }
 });
