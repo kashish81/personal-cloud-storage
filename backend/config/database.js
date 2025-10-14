@@ -9,14 +9,16 @@ const pool = new Pool({
   port: 5432,
   database: 'postgres',
   user: 'postgres',
-  password: process.env.DB_PASSWORD || 'kash-divya90',
+  password: process.env.DB_PASSWORD,
   ssl: {
     rejectUnauthorized: false
   },
   max: 10,
   min: 2,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
+  connectionTimeoutMillis: 10000,
+  // Force IPv4 to avoid IPv6 issues on Render
+  options: '-c client_encoding=UTF8'
 });
 
 const testConnection = async () => {
@@ -25,6 +27,7 @@ const testConnection = async () => {
     const result = await client.query('SELECT NOW()');
     console.log('✅ PostgreSQL Connected Successfully!');
     console.log('📅 Database Time:', result.rows[0].now);
+    console.log('🔐 Password:', process.env.DB_PASSWORD ? 'Set' : 'Not Set');
     client.release();
     return true;
   } catch (error) {
