@@ -2,11 +2,11 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 console.log('=== SUPABASE CONNECTION DEBUG ===');
-console.log('Attempting to connect to Supabase via Transaction Pooler...');
+console.log('Attempting to connect to Supabase via Session Pooler...');
 
 const pool = new Pool({
   host: 'aws-0-ap-southeast-1.pooler.supabase.com',
-  port: 6543,
+  port: 5432,
   database: 'postgres',
   user: 'postgres.xlbrvoqqgfvrgramyovb',
   password: process.env.DB_PASSWORD,
@@ -23,15 +23,15 @@ const testConnection = async () => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    console.log('✅ PostgreSQL Connected Successfully via Pooler!');
+    console.log('✅ PostgreSQL Connected Successfully!');
     console.log('📅 Database Time:', result.rows[0].now);
     client.release();
     return true;
   } catch (error) {
     console.error('❌ PostgreSQL Connection Error:', error.message);
-    console.error('Using Transaction Pooler:');
+    console.error('Connection details:');
     console.error('- Host: aws-0-ap-southeast-1.pooler.supabase.com');
-    console.error('- Port: 6543');
+    console.error('- Port: 5432');
     console.error('- User: postgres.xlbrvoqqgfvrgramyovb');
     console.error('- Password set:', !!process.env.DB_PASSWORD);
     throw error;
