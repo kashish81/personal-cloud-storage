@@ -5,7 +5,9 @@ const path = require('path');
 const fs = require('fs');
 const { pool } = require('../config/database');
 const { authenticateToken } = require('./auth');
-const { generateTags } = require('../services/aiTagging');
+
+// Import AI tagging service
+const { generateTags: generateAITags } = require('../services/aiTagging');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -34,23 +36,36 @@ const upload = multer({
   }
 });
 
-    // Generate AI tags
-    console.log('Generating AI tags for:', req.file.originalname);
-    const tags = await generateTags(req.file.path, req.file.originalname, req.file.mimetype);
-    console.log('Generated tags:', tags);
+// Fallback simple tags (if AI fails)
+const generateSimpleTags = (filename, mimeType) => {
+  const tags = [];
+  const nameLower = filename.toLowerCase();
+  
+  if (mimeType.startsWith('image/')) tags.push('image');
+  else if (mimeType.startsWith('video/')) tags.push('video');
+  else if (mimeType.startsWith('audio/')) tags.push('audio');
+  else if (mimeType.includes('pdf')) tags.push('document', 'pdf');
+  else if (mimeType.includes('word')) tags.push('document', 'word');
+  else if (mimeType.includes('sheet') || mimeType.includes('excel')) tags.push('spreadsheet', 'data');
+  else if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) tags.push('presentation');
+  else tags.push('file');
+  
+  if (nameLower.includes('report')) tags.push('report');
+  if (nameLower.includes('invoice')) tags.push('invoice', 'finance');
+  if (nameLower.includes('resume') || nameLower.includes('cv')) tags.push('resume', 'career');
+  if (nameLower.includes('photo')) tags.push('photo');
+  if (nameLower.includes('screenshot')) tags.push('screenshot');
+  if (nameLower.includes('backup')) tags.push('backup');
+  if (nameLower.includes('project')) tags.push('project', 'work');
+  if (nameLower.includes('personal')) tags.push('personal');
+  
+  const year = new Date().getFullYear();
+  if (nameLower.includes(year.toString())) tags.push(year.toString());
+  
+  return tags;
+};
 
-    // Create file record
-    const file = await File.create({
-      userId: userId,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      size: req.file.size,
-      path: req.file.path,
-      tags: tags
-    });
-
-    const generateDescription = (filename, mimeType, tags) => {
+const generateDescription = (filename, mimeType, tags) => {
   const type = mimeType.split('/')[0];
   const extension = path.extname(filename).substring(1).toUpperCase();
   
@@ -71,9 +86,20 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     }
 
     const userId = req.user.id;
-    const { originalname, filename, mimetype, size } = req.file;
+    const { originalname, filename, mimetype, size, path: filePath } = req.file;
 
-    const tags = generateTags(originalname, mimetype);
+    // Generate AI-powered tags
+    let tags = [];
+    try {
+      console.log('🤖 Generating AI tags for:', originalname);
+      tags = await generateAITags(filePath, originalname, mimetype);
+      console.log('✅ AI Tags generated:', tags);
+    } catch (aiError) {
+      console.error('⚠️ AI tagging failed:', aiError.message);
+      console.log('Using fallback simple tags...');
+      tags = generateSimpleTags(originalname, mimetype);
+    }
+
     const description = generateDescription(originalname, mimetype, tags);
 
     const result = await pool.query(
@@ -102,9 +128,9 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     console.error('Upload error:', error);
     
     if (req.file) {
-      const filePath = path.join(uploadsDir, req.file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const errorFilePath = path.join(uploadsDir, req.file.filename);
+      if (fs.existsSync(errorFilePath)) {
+        fs.unlinkSync(errorFilePath);
       }
     }
 

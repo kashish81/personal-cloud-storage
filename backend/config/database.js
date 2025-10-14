@@ -1,19 +1,24 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Create PostgreSQL Pool
+console.log('=== SUPABASE CONNECTION DEBUG ===');
+console.log('Attempting to connect to Supabase...');
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { 
-    rejectUnauthorized: false 
-  } : false,
+  host: 'db.xlbrvoqqgfvrgramyovb.supabase.co',
+  port: 5432,
+  database: 'postgres',
+  user: 'postgres',
+  password: process.env.DB_PASSWORD || 'kash-divya90',
+  ssl: {
+    rejectUnauthorized: false
+  },
   max: 10,
   min: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000
 });
 
-// Test database connection
 const testConnection = async () => {
   try {
     const client = await pool.connect();
@@ -24,34 +29,21 @@ const testConnection = async () => {
     return true;
   } catch (error) {
     console.error('❌ PostgreSQL Connection Error:', error.message);
-    console.error('\nCheck these settings:');
-    console.error('1. DATABASE_URL is set in .env file');
-    console.error('2. Supabase connection string is correct');
-    console.error('3. Database password is correct');
-    console.error('4. Network connection is working');
+    console.error('Connection details:');
+    console.error('- Host: db.xlbrvoqqgfvrgramyovb.supabase.co');
+    console.error('- Port: 5432');
+    console.error('- Database: postgres');
+    console.error('- User: postgres');
+    console.error('- Password set:', !!process.env.DB_PASSWORD);
     throw error;
   }
 };
 
-// Handle pool errors
-pool.on('error', (err, client) => {
+pool.on('error', (err) => {
   console.error('Unexpected database error:', err);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  try {
-    await pool.end();
-    console.log('Database pool closed');
-    process.exit(0);
-  } catch (err) {
-    console.error('Error closing pool:', err);
-    process.exit(1);
-  }
 });
 
 module.exports = { 
   pool,
-  testConnection,
-  query: (text, params) => pool.query(text, params)
+  testConnection
 };
