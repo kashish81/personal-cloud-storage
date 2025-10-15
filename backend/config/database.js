@@ -1,15 +1,14 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-console.log('=== SUPABASE CONNECTION DEBUG ===');
-console.log('Attempting to connect to Supabase via Session Pooler...');
+console.log('=== SUPABASE CONNECTION ===');
+console.log('Using Session Pooler (IPv4 compatible)');
+
+// Session Pooler - IPv4 compatible, port 5432
+const connectionString = `postgresql://postgres.xlbrvoqqgfvrgramyovb:${process.env.DB_PASSWORD}@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`;
 
 const pool = new Pool({
-  host: 'aws-0-ap-southeast-1.pooler.supabase.com',
-  port: 5432,
-  database: 'postgres',
-  user: 'postgres.xlbrvoqqgfvrgramyovb',
-  password: process.env.DB_PASSWORD,
+  connectionString: connectionString,
   ssl: {
     rejectUnauthorized: false
   },
@@ -23,23 +22,18 @@ const testConnection = async () => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    console.log('✅ PostgreSQL Connected Successfully!');
+    console.log('✅ PostgreSQL Connected via Session Pooler!');
     console.log('📅 Database Time:', result.rows[0].now);
     client.release();
     return true;
   } catch (error) {
-    console.error('❌ PostgreSQL Connection Error:', error.message);
-    console.error('Connection details:');
-    console.error('- Host: aws-0-ap-southeast-1.pooler.supabase.com');
-    console.error('- Port: 5432');
-    console.error('- User: postgres.xlbrvoqqgfvrgramyovb');
-    console.error('- Password set:', !!process.env.DB_PASSWORD);
+    console.error('❌ Connection Error:', error.message);
     throw error;
   }
 };
 
 pool.on('error', (err) => {
-  console.error('Unexpected database error:', err);
+  console.error('Database error:', err);
 });
 
 module.exports = { 
