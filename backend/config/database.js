@@ -2,13 +2,11 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 console.log('=== SUPABASE CONNECTION ===');
-console.log('Using Session Pooler (IPv4 compatible)');
 
-// Session Pooler - IPv4 compatible, port 5432
-const connectionString = `postgresql://postgres.xlbrvoqqgfvrgramyovb:${process.env.DB_PASSWORD}@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`;
-
+// Use DATABASE_URL directly
 const pool = new Pool({
-  connectionString: connectionString,
+  connectionString: process.env.DATABASE_URL || 
+    `postgresql://postgres.xlbrvoqqgfvrgramyovb:${process.env.DB_PASSWORD}@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`,
   ssl: {
     rejectUnauthorized: false
   },
@@ -22,8 +20,8 @@ const testConnection = async () => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
-    console.log('✅ PostgreSQL Connected via Session Pooler!');
-    console.log('📅 Database Time:', result.rows[0].now);
+    console.log('✅ PostgreSQL Connected!');
+    console.log('📅 Time:', result.rows[0].now);
     client.release();
     return true;
   } catch (error) {
