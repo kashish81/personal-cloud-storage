@@ -2,6 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+// Use environment variable, fallback to localhost
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -25,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
   const getCurrentUser = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -42,8 +45,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-      // localStorage.removeItem('token');
-      // setToken(null);
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -67,13 +68,14 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: data.message };
     } catch (error) {
+      console.error('Login error:', error);
       return { success: false, message: 'Network error. Please try again.' };
     }
   };
 
   const register = async (userData) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: data.message };
     } catch (error) {
+      console.error('Register error:', error);
       return { success: false, message: 'Network error. Please try again.' };
     }
   };
