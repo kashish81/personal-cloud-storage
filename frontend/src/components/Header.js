@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Search, LogOut, Menu } from 'lucide-react';
+import { Search, LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 const Header = ({ onSearch, isMobile, onMenuClick }) => {
+  const { theme, isDark, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const { user, logout } = useAuth();
@@ -14,64 +16,243 @@ const Header = ({ onSearch, isMobile, onMenuClick }) => {
     }
   };
 
-  return (
-    <div style={{
-      ...styles.header,
+  const dynamicStyles = {
+    header: {
+      height: '64px',
+      borderBottom: `1px solid ${theme.border}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 24px',
+      background: theme.bgSecondary,
+      position: 'fixed',
+      top: 0,
+      right: 0,
+      zIndex: 100,
+      transition: 'all 0.3s ease',
+      gap: '16px',
       left: isMobile ? 0 : '280px'
-    }}>
-      {/* Hamburger Menu for Mobile */}
+    },
+    hamburgerButton: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '8px',
+      color: theme.textSecondary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'color 0.3s ease'
+    },
+    searchForm: {
+      position: 'relative',
+      flex: '1 1 0%',
+      maxWidth: '720px'
+    },
+    searchIcon: {
+      position: 'absolute',
+      left: '16px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: theme.textSecondary,
+      transition: 'color 0.3s ease'
+    },
+    searchInput: {
+      width: '100%',
+      padding: '12px 16px 12px 48px',
+      background: theme.hover,
+      border: `1px solid ${theme.border}`,
+      borderRadius: '20px',
+      fontSize: '14px',
+      outline: 'none',
+      transition: 'all 0.3s ease',
+      color: theme.text,
+      ':focus': {
+        background: theme.bgSecondary,
+        borderColor: theme.primary
+      }
+    },
+    userSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      position: 'relative'
+    },
+    themeButton: {
+      background: theme.hover,
+      border: `1px solid ${theme.border}`,
+      padding: '8px 16px',
+      borderRadius: '20px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      color: theme.text,
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
+    },
+    userButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      cursor: 'pointer',
+      padding: '8px 12px',
+      borderRadius: '24px',
+      transition: 'background 0.2s ease',
+      backgroundColor: theme.hover
+    },
+    avatar: {
+      width: '36px',
+      height: '36px',
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '16px',
+      fontWeight: '600'
+    },
+    username: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: theme.text,
+      transition: 'color 0.3s ease'
+    },
+    dropdown: {
+      position: 'absolute',
+      top: '100%',
+      right: 0,
+      marginTop: '8px',
+      background: theme.bgSecondary,
+      borderRadius: '8px',
+      boxShadow: `0 2px 10px rgba(0,0,0,${isDark ? 0.3 : 0.15})`,
+      minWidth: '280px',
+      padding: '16px',
+      zIndex: 1000,
+      border: `1px solid ${theme.border}`,
+      transition: 'all 0.3s ease'
+    },
+    dropdownHeader: {
+      display: 'flex',
+      gap: '12px',
+      alignItems: 'center',
+      marginBottom: '16px'
+    },
+    avatarLarge: {
+      width: '48px',
+      height: '48px',
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontSize: '20px',
+      fontWeight: '600'
+    },
+    dropdownName: {
+      margin: '0 0 4px 0',
+      fontSize: '14px',
+      fontWeight: '600',
+      color: theme.text,
+      transition: 'color 0.3s ease'
+    },
+    dropdownEmail: {
+      margin: 0,
+      fontSize: '12px',
+      color: theme.textSecondary,
+      transition: 'color 0.3s ease'
+    },
+    divider: {
+      height: '1px',
+      background: theme.border,
+      margin: '12px 0',
+      transition: 'background 0.3s ease'
+    },
+    logoutButton: {
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      padding: '10px 12px',
+      background: 'none',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: '14px',
+      color: theme.textSecondary,
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      textAlign: 'left'
+    }
+  };
+
+  return (
+    <div style={dynamicStyles.header}>
       {isMobile && (
-        <button onClick={onMenuClick} style={styles.hamburgerButton}>
+        <button onClick={onMenuClick} style={dynamicStyles.hamburgerButton}>
           <Menu size={24} />
         </button>
       )}
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} style={styles.searchForm}>
-        <Search size={20} style={styles.searchIcon} />
+      <form onSubmit={handleSearch} style={dynamicStyles.searchForm}>
+        <Search size={20} style={dynamicStyles.searchIcon} />
         <input
           type="text"
           placeholder="Search in files"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={styles.searchInput}
+          style={dynamicStyles.searchInput}
         />
       </form>
 
-      {/* User Menu */}
-      <div style={styles.userSection}>
+      <div style={dynamicStyles.userSection}>
+        <button
+          onClick={toggleTheme}
+          style={dynamicStyles.themeButton}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          {!isMobile && (isDark ? 'Light' : 'Dark')}
+        </button>
+
         <div
-          style={styles.userButton}
+          style={dynamicStyles.userButton}
           onClick={() => setShowDropdown(!showDropdown)}
         >
-          <div style={styles.avatar}>
+          <div style={dynamicStyles.avatar}>
             {user.username.charAt(0).toUpperCase()}
           </div>
           {!isMobile && (
-            <span style={styles.username}>{user.username}</span>
+            <span style={dynamicStyles.username}>{user.username}</span>
           )}
         </div>
 
         {showDropdown && (
-          <div style={styles.dropdown}>
-            <div style={styles.dropdownHeader}>
-              <div style={styles.avatarLarge}>
+          <div style={dynamicStyles.dropdown}>
+            <div style={dynamicStyles.dropdownHeader}>
+              <div style={dynamicStyles.avatarLarge}>
                 {user.username.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p style={styles.dropdownName}>{user.username}</p>
-                <p style={styles.dropdownEmail}>{user.email}</p>
+                <p style={dynamicStyles.dropdownName}>{user.username}</p>
+                <p style={dynamicStyles.dropdownEmail}>{user.email}</p>
               </div>
             </div>
             
-            <div style={styles.divider}></div>
+            <div style={dynamicStyles.divider}></div>
             
             <button
               onClick={() => {
                 logout();
                 setShowDropdown(false);
               }}
-              style={styles.logoutButton}
+              style={dynamicStyles.logoutButton}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.hover}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
             >
               <LogOut size={18} />
               Sign out
@@ -81,149 +262,6 @@ const Header = ({ onSearch, isMobile, onMenuClick }) => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  header: {
-    height: '64px',
-    borderBottom: '1px solid #e0e0e0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    background: 'white',
-    position: 'fixed',
-    top: 0,
-    right: 0,
-    zIndex: 100,
-    transition: 'left 0.3s ease',
-    gap: '16px'
-  },
-  hamburgerButton: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '8px',
-    color: '#5f6368',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  searchForm: {
-    position: 'relative',
-    flex: '1 1 0%',
-    maxWidth: '720px'
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: '16px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#5f6368'
-  },
-  searchInput: {
-    width: '100%',
-    padding: '12px 16px 12px 48px',
-    background: 'rgb(241, 243, 244)',
-    border: 'none',
-    borderRadius: '20px',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'background 0.2s'
-  },
-  userSection: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    position: 'relative'
-  },
-  userButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    cursor: 'pointer',
-    padding: '8px 12px',
-    borderRadius: '24px',
-    transition: 'background 0.2s ease'
-  },
-  avatar: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '600'
-  },
-  username: {
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#202124'
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: '8px',
-    background: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-    minWidth: '280px',
-    padding: '16px',
-    zIndex: 1000
-  },
-  dropdownHeader: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-    marginBottom: '16px'
-  },
-  avatarLarge: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontSize: '20px',
-    fontWeight: '600'
-  },
-  dropdownName: {
-    margin: '0 0 4px 0',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#202124'
-  },
-  dropdownEmail: {
-    margin: 0,
-    fontSize: '12px',
-    color: '#5f6368'
-  },
-  divider: {
-    height: '1px',
-    background: '#e0e0e0',
-    margin: '12px 0'
-  },
-  logoutButton: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 12px',
-    background: 'none',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '14px',
-    color: '#5f6368',
-    cursor: 'pointer',
-    transition: 'background 0.2s ease',
-    textAlign: 'left'
-  }
 };
 
 export default Header;

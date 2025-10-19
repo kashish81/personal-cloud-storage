@@ -176,6 +176,51 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== GET STORAGE STATS =====
+router.get('/stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT 
+        COUNT(*) as total_files,
+        COALESCE(SUM(CAST(size AS BIGINT)), 0) as total_size,
+        SUM(CASE WHEN mime_type LIKE 'image/%' THEN CAST(size AS BIGINT) ELSE 0 END) as images_size,
+        SUM(CASE WHEN mime_type LIKE 'video/%' THEN CAST(size AS BIGINT) ELSE 0 END) as videos_size,
+        SUM(CASE WHEN mime_type LIKE 'audio/%' THEN CAST(size AS BIGINT) ELSE 0 END) as audio_size,
+        SUM(CASE WHEN mime_type LIKE 'application/pdf' 
+                 OR mime_type LIKE '%word%'
+                 OR mime_type LIKE '%document%'
+                 OR mime_type LIKE '%sheet%'
+                 OR mime_type LIKE '%excel%'
+                 OR mime_type LIKE 'text/%' THEN CAST(size AS BIGINT) ELSE 0 END) as docs_size
+      FROM files WHERE user_id = $1`,
+      [userId]
+    );
+
+    const stats = result.rows[0];
+    res.json({
+      success: true,
+      stats: {
+        totalFiles: parseInt(stats.total_files),
+        totalSize: parseInt(stats.total_size),
+        imagesSize: parseInt(stats.images_size) || 0,
+        videosSize: parseInt(stats.videos_size) || 0,
+        audioSize: parseInt(stats.audio_size) || 0,
+        docsSize: parseInt(stats.docs_size) || 0,
+        storageLimit: 5368709120
+      }
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch storage stats',
+      error: error.message
+    });
+  }
+});
+
 // ===== DOWNLOAD FILE =====
 router.get('/download/:id', authenticateToken, async (req, res) => {
   try {
