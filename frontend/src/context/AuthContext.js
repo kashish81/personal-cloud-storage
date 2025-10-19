@@ -2,7 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-// Use environment variable, fallback to localhost
+// Demo mode toggle
+const DEMO_MODE = true; // Change to false when backend is ready
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const useAuth = () => {
@@ -45,6 +47,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching user:', error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -52,6 +55,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      // Demo mode
+      if (DEMO_MODE) {
+        const mockUser = {
+          id: 1,
+          username: email.split('@')[0],
+          email: email
+        };
+        const mockToken = 'demo-token-' + Date.now();
+        
+        localStorage.setItem('token', mockToken);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        setToken(mockToken);
+        setUser(mockUser);
+        setLoading(false);
+        
+        return { success: true, message: 'Demo login successful' };
+      }
+
+      // Real login
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,6 +97,25 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
+      // Demo mode
+      if (DEMO_MODE) {
+        const mockUser = {
+          id: 1,
+          username: userData.username,
+          email: userData.email
+        };
+        const mockToken = 'demo-token-' + Date.now();
+        
+        localStorage.setItem('token', mockToken);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        setToken(mockToken);
+        setUser(mockUser);
+        setLoading(false);
+        
+        return { success: true, message: 'Demo registration successful' };
+      }
+
+      // Real register
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +139,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
