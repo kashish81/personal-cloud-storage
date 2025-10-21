@@ -1,0 +1,6 @@
+{
+  "extends": ["react-app"],
+  "globals": {
+    "DEMO_MODE": "readonly"
+  }
+}
