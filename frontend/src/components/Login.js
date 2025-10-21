@@ -64,7 +64,7 @@ const Login = ({ onToggleMode }) => {
   const styles = {
     container: {
       display: 'flex',
-      height: '100vh',
+      minHeight: '100vh',
       backgroundColor: '#0f172a',
       color: '#f1f5f9',
       fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -125,7 +125,8 @@ const Login = ({ onToggleMode }) => {
       background: 'rgba(15, 23, 42, 0.95)',
       backdropFilter: 'blur(20px)',
       position: 'relative',
-      animation: 'slideIn 0.6s ease-out'
+      animation: 'slideIn 0.6s ease-out',
+      overflowY: 'auto'
     },
     formContainer: {
       maxWidth: '380px',
@@ -149,7 +150,8 @@ const Login = ({ onToggleMode }) => {
       background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text'
+      backgroundClip: 'text',
+      lineHeight: '1.2'
     },
     subtitle: {
       fontSize: '13px',
@@ -292,8 +294,11 @@ const Login = ({ onToggleMode }) => {
 
   return (
     <div style={styles.container}>
-      {/* Left Section - Image */}
-      <div style={styles.leftSection}>
+      {/* Left Section - Hidden on mobile/tablet */}
+      <div style={{
+        ...styles.leftSection,
+        display: window.innerWidth < 1024 ? 'none' : 'flex'
+      }}>
         <div style={styles.imageContainer}>
           <img src={authBg} alt="Tech Background" style={styles.image} />
           <div style={styles.gradientOverlay} />
@@ -301,11 +306,24 @@ const Login = ({ onToggleMode }) => {
         <div style={styles.glowOrb} />
       </div>
 
-      {/* Right Section - Form */}
-      <div style={styles.rightSection}>
-        <div style={styles.formContainer}>
+      {/* Right Section - Full width on mobile/tablet */}
+      <div style={{
+        ...styles.rightSection,
+        flex: window.innerWidth < 1024 ? 1 : 1,
+        width: window.innerWidth < 1024 ? '100%' : 'auto'
+      }}>
+        <div style={{
+          ...styles.formContainer,
+          padding: window.innerWidth < 640 ? '32px 24px' : '40px 32px',
+          maxWidth: window.innerWidth < 640 ? '100%' : '380px'
+        }}>
           <div style={styles.header}>
-            <h1 style={styles.title}>Welcome Back to AI-Powered Cloud Storage</h1>
+            <h1 style={{
+              ...styles.title,
+              fontSize: window.innerWidth < 640 ? '24px' : '28px'
+            }}>
+              Welcome Back to AI-Powered Cloud Storage
+            </h1>
             <p style={styles.subtitle}>
               Sign in to your account to access your cloud storage
             </p>
@@ -464,6 +482,21 @@ const Login = ({ onToggleMode }) => {
         }
         input::placeholder {
           color: #475569;
+        }
+
+        /* Mobile/Tablet Responsive */
+        @media (max-width: 1023px) {
+          ${styles.container} {
+            padding: 20px;
+          }
+        }
+        @media (max-width: 640px) {
+          ${styles.formContainer} {
+            padding: 32px 24px !important;
+          }
+          ${styles.title} {
+            font-size: 24px !important;
+          }
         }
       `}</style>
     </div>

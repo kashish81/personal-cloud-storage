@@ -59,7 +59,7 @@ const Register = ({ onToggleMode }) => {
   const styles = {
     container: {
       display: 'flex',
-      height: '100vh',
+      minHeight: '100vh',
       backgroundColor: '#0f172a',
       color: '#f1f5f9',
       fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -146,7 +146,8 @@ const Register = ({ onToggleMode }) => {
       background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text'
+      backgroundClip: 'text',
+      lineHeight: '1.2'
     },
     subtitle: {
       fontSize: '13px',
@@ -284,8 +285,11 @@ const Register = ({ onToggleMode }) => {
 
   return (
     <div style={styles.container}>
-      {/* Left Section - Image */}
-      <div style={styles.leftSection}>
+      {/* Left Section - Hidden on mobile/tablet */}
+      <div style={{
+        ...styles.leftSection,
+        display: window.innerWidth < 1024 ? 'none' : 'flex'
+      }}>
         <div style={styles.imageContainer}>
           <img src={authBg} alt="Tech Background" style={styles.image} />
           <div style={styles.gradientOverlay} />
@@ -293,11 +297,25 @@ const Register = ({ onToggleMode }) => {
         <div style={styles.glowOrb} />
       </div>
 
-      {/* Right Section - Form */}
-      <div style={styles.rightSection}>
-        <div style={styles.formContainer}>
+      {/* Right Section - Full width on mobile/tablet */}
+      <div style={{
+        ...styles.rightSection,
+        flex: window.innerWidth < 1024 ? 1 : 1,
+        width: window.innerWidth < 1024 ? '100%' : 'auto',
+        padding: window.innerWidth < 640 ? '30px 20px' : '40px 30px'
+      }}>
+        <div style={{
+          ...styles.formContainer,
+          padding: window.innerWidth < 640 ? '32px 24px' : '40px 32px',
+          maxWidth: window.innerWidth < 640 ? '100%' : '380px'
+        }}>
           <div style={styles.header}>
-            <h1 style={styles.title}>Create Account</h1>
+            <h1 style={{
+              ...styles.title,
+              fontSize: window.innerWidth < 640 ? '24px' : '28px'
+            }}>
+              Create Account
+            </h1>
             <p style={styles.subtitle}>
               Join us to start managing your cloud storage with AI-powered features
             </p>
@@ -517,6 +535,18 @@ const Register = ({ onToggleMode }) => {
         }
         input::placeholder {
           color: #475569;
+        }
+
+        /* Mobile/Tablet Responsive */
+        @media (max-width: 1023px) {
+          body {
+            padding: 20px;
+          }
+        }
+        @media (max-width: 640px) {
+          input {
+            font-size: 16px !important; /* Prevents zoom on iOS */
+          }
         }
       `}</style>
     </div>
