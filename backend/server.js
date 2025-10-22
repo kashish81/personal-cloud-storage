@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const { pool, testConnection } = require('./config/database');
 
+console.log('Environment check:');
+console.log('HF Key:', process.env.HUGGINGFACE_API_KEY ? '✓ Loaded' : '✗ Missing');
 const app = express();
 
 // ===== MIDDLEWARE =====

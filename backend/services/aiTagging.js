@@ -13,6 +13,12 @@ try {
 
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
+// DEBUG: Check if API key is loaded
+console.log('🔑 Hugging Face API Key Status:', HUGGINGFACE_API_KEY ? 
+  `Loaded (${HUGGINGFACE_API_KEY.substring(0, 6)}...)` : 
+  '❌ NOT LOADED - Check .env file!'
+);
+
 // Extract text from PDF
 async function extractPDFText(filePath) {
   if (!pdfParse) {
@@ -105,46 +111,212 @@ async function classifyText(text) {
     return [];
   } catch (error) {
     console.error('Text classification error:', error.message);
-    return [];
+    console.log('⚠️ Text classification failed, using keyword extraction instead');
+    // Fallback to keyword extraction
+    return extractKeywords(text).slice(0, 3);
   }
 }
 
-// AI Image Captioning
-async function analyzeImage(filePath) {
+// ENHANCED: AI Image Analysis with Better Tag Extraction
+async function analyzeImage(filePath, filename) {
+  // ALWAYS try fallback first for better UX, then enhance with AI if available
+  const fallbackTags = getFallbackImageTags(filename);
+  
   if (!HUGGINGFACE_API_KEY) {
-    console.log('⚠️ HUGGINGFACE_API_KEY not set, skipping image analysis');
-    return [];
+    console.log('⚠️ HUGGINGFACE_API_KEY not set, using smart filename-based tags');
+    return fallbackTags;
   }
   
   try {
+    console.log('🖼️ Analyzing image with AI...');
     const fileBuffer = fs.readFileSync(filePath);
+    
+    // Using Microsoft's GIT model - proven to work with Inference API
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base',
+      'https://api-inference.huggingface.co/models/microsoft/git-base',
       fileBuffer,
       {
         headers: {
           'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
           'Content-Type': 'application/octet-stream'
         },
-        timeout: 15000,
+        timeout: 30000,
         maxContentLength: 10 * 1024 * 1024
       }
     );
 
-    const caption = response.data[0]?.generated_text || '';
-    return extractKeywords(caption);
+    if (response.data && response.data[0]?.generated_text) {
+      const caption = response.data[0].generated_text;
+      console.log('📝 Image caption:', caption);
+      
+      // Extract meaningful tags from caption
+      const tags = extractImageTags(caption, filename);
+      console.log('🏷️ Extracted image tags:', tags);
+      
+      return tags.length > 0 ? tags : fallbackTags;
+    }
+    
+    return fallbackTags;
   } catch (error) {
     console.error('Image analysis error:', error.message);
+    console.log('⚠️ Hugging Face API failed (403 = Invalid/Expired token). Using smart filename tags.');
+    
+    // Return enhanced fallback tags
+    return fallbackTags.length > 1 ? fallbackTags : ['image', 'photo'];
+  }
+}
+
+// NEW: Analyze image objects (fallback method)
+async function analyzeImageObjects(filePath) {
+  if (!HUGGINGFACE_API_KEY) return [];
+  
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    // Using Google's ViT model for image classification
+    const response = await axios.post(
+      'https://api-inference.huggingface.co/models/google/vit-base-patch16-224',
+      fileBuffer,
+      {
+        headers: {
+          'Authorization': `Bearer ${HUGGINGFACE_API_KEY}`,
+          'Content-Type': 'application/octet-stream'
+        },
+        timeout: 30000
+      }
+    );
+
+    if (response.data && Array.isArray(response.data)) {
+      // Extract detected labels with confidence > 0.3
+      const detectedObjects = response.data
+        .filter(item => item.score > 0.3)
+        .map(item => item.label.toLowerCase())
+        .slice(0, 5);
+      
+      console.log('🎯 Detected labels:', detectedObjects);
+      return detectedObjects;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Object detection error:', error.message);
     return [];
   }
+}
+
+// ENHANCED: Extract smart tags from image caption
+function extractImageTags(caption, filename) {
+  const tags = [];
+  const captionLower = caption.toLowerCase();
+  const filenameLower = filename.toLowerCase();
+  
+  // People & Portraits
+  if (captionLower.match(/\b(person|people|man|woman|girl|boy|child|face|portrait)\b/)) {
+    tags.push('person');
+    if (captionLower.match(/\b(woman|girl|lady)\b/)) tags.push('woman');
+    if (captionLower.match(/\b(man|boy|gentleman)\b/)) tags.push('man');
+    if (captionLower.match(/\b(child|kid|baby)\b/)) tags.push('child');
+    if (captionLower.match(/\b(smiling|smile|happy)\b/)) tags.push('portrait');
+  }
+  
+  // Screenshots & UI
+  if (filenameLower.includes('screenshot') || captionLower.match(/\b(screen|monitor|display|interface|website|app|software)\b/)) {
+    tags.push('screenshot');
+    tags.push('digital');
+    if (captionLower.includes('website')) tags.push('web');
+  }
+  
+  // Nature & Outdoor
+  if (captionLower.match(/\b(tree|mountain|sky|cloud|beach|ocean|sea|forest|landscape|nature|outdoor)\b/)) {
+    tags.push('nature');
+    tags.push('outdoor');
+    if (captionLower.includes('mountain')) tags.push('landscape');
+    if (captionLower.match(/\b(ocean|sea|beach)\b/)) tags.push('water');
+  }
+  
+  // Animals
+  if (captionLower.match(/\b(dog|cat|bird|animal|pet)\b/)) {
+    tags.push('animal');
+    if (captionLower.match(/\b(dog|puppy)\b/)) tags.push('dog');
+    if (captionLower.match(/\b(cat|kitten)\b/)) tags.push('cat');
+  }
+  
+  // Food
+  if (captionLower.match(/\b(food|meal|dish|plate|cuisine|cooking|restaurant|breakfast|lunch|dinner)\b/)) {
+    tags.push('food');
+    tags.push('meal');
+  }
+  
+  // Architecture & Buildings
+  if (captionLower.match(/\b(building|house|architecture|city|street|urban)\b/)) {
+    tags.push('architecture');
+    if (captionLower.includes('city')) tags.push('urban');
+  }
+  
+  // Vehicles
+  if (captionLower.match(/\b(car|vehicle|bike|motorcycle|truck|bus)\b/)) {
+    tags.push('vehicle');
+    tags.push('transport');
+  }
+  
+  // Indoor
+  if (captionLower.match(/\b(room|indoor|interior|furniture|desk|table|chair)\b/)) {
+    tags.push('indoor');
+  }
+  
+  // Technology
+  if (captionLower.match(/\b(computer|laptop|phone|device|gadget|technology)\b/)) {
+    tags.push('technology');
+    tags.push('device');
+  }
+  
+  // Extract additional keywords from caption
+  const keywords = extractKeywords(caption);
+  tags.push(...keywords.slice(0, 3));
+  
+  // Remove duplicates
+  return [...new Set(tags)];
+}
+
+// ENHANCED: Smart fallback tags based on filename
+function getFallbackImageTags(filename) {
+  const tags = ['image'];
+  const filenameLower = filename.toLowerCase();
+  
+  // Check filename patterns
+  if (filenameLower.includes('screenshot') || filenameLower.includes('screen shot')) {
+    tags.push('screenshot', 'digital');
+  }
+  if (filenameLower.includes('photo') || filenameLower.includes('pic')) {
+    tags.push('photo');
+  }
+  if (filenameLower.includes('selfie')) {
+    tags.push('selfie', 'portrait', 'person');
+  }
+  if (filenameLower.includes('profile') || filenameLower.includes('avatar')) {
+    tags.push('profile', 'portrait');
+  }
+  if (filenameLower.includes('landscape')) {
+    tags.push('landscape', 'nature');
+  }
+  if (filenameLower.match(/\b(food|meal|dish)\b/)) {
+    tags.push('food', 'meal');
+  }
+  if (filenameLower.match(/\b(design|graphic|art)\b/)) {
+    tags.push('design', 'creative');
+  }
+  if (filenameLower.includes('document') || filenameLower.includes('scan')) {
+    tags.push('document', 'scan');
+  }
+  
+  return tags;
 }
 
 // Extract keywords from text
 function extractKeywords(text) {
   if (!text) return [];
   
-  const stopWords = ['the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but', 'in', 'with', 'to', 'for', 'of'];
-  const words = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+  const stopWords = ['the', 'is', 'at', 'which', 'on', 'a', 'an', 'and', 'or', 'but', 'in', 'with', 'to', 'for', 'of', 'that', 'this'];
+  const words = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
   const filtered = words.filter(w => !stopWords.includes(w));
   const frequency = {};
   filtered.forEach(w => frequency[w] = (frequency[w] || 0) + 1);
@@ -172,8 +344,8 @@ async function generateTags(filePath, filename, mimeType) {
       tags.push('spreadsheet', 'data');
       extractedText = extractExcelText(filePath);
     } else if (mimeType.startsWith('image/')) {
-      tags.push('image');
-      const imageTags = await analyzeImage(filePath);
+      // ENHANCED IMAGE HANDLING
+      const imageTags = await analyzeImage(filePath, filename);
       tags.push(...imageTags);
     } else if (mimeType.startsWith('video/')) {
       tags.push('video', 'media');
