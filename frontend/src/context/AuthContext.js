@@ -5,7 +5,7 @@ const DEMO_MODE = process.env.REACT_APP_DEMO_MODE === 'true' || false;
 const AuthContext = createContext();
 
 // Demo mode toggle
-// const DEMO_MODE = true; // Change to false when backend is ready
+const DEMO_MODE = true; // Change to false when backend is ready
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
