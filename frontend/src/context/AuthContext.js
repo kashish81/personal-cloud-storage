@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const DEMO_MODE = process.env.REACT_APP_DEMO_MODE === 'true' || false;
+// const DEMO_MODE = process.env.REACT_APP_DEMO_MODE === 'true' || false;
 
 const AuthContext = createContext();
 
