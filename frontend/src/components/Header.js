@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { Search, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,6 +13,22 @@ const Header = ({ onSearch, isMobile, onMenuClick }) => {
     e.preventDefault();
     if (onSearch) {
       onSearch(searchQuery);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    // Real-time search
+    if (onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    if (onSearch) {
+      onSearch('');
     }
   };
 
@@ -55,22 +71,38 @@ const Header = ({ onSearch, isMobile, onMenuClick }) => {
       top: '50%',
       transform: 'translateY(-50%)',
       color: theme.textSecondary,
-      transition: 'color 0.3s ease'
+      transition: 'color 0.3s ease',
+      pointerEvents: 'none'
     },
     searchInput: {
       width: '100%',
       padding: '12px 16px 12px 48px',
+      paddingRight: searchQuery ? '48px' : '16px',
       background: theme.hover,
       border: `1px solid ${theme.border}`,
       borderRadius: '20px',
       fontSize: '14px',
       outline: 'none',
       transition: 'all 0.3s ease',
-      color: theme.text,
-      ':focus': {
-        background: theme.bgSecondary,
-        borderColor: theme.primary
-      }
+      color: theme.text
+    },
+    clearButton: {
+      position: 'absolute',
+      right: '12px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '6px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: theme.textSecondary,
+      transition: 'all 0.2s ease',
+      opacity: searchQuery ? 1 : 0,
+      visibility: searchQuery ? 'visible' : 'hidden'
     },
     userSection: {
       display: 'flex',
@@ -202,9 +234,27 @@ const Header = ({ onSearch, isMobile, onMenuClick }) => {
           type="text"
           placeholder="Search in files"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleSearchChange}
           style={dynamicStyles.searchInput}
         />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            style={dynamicStyles.clearButton}
+            title="Clear search"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = theme.hover;
+              e.currentTarget.style.color = theme.text;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.color = theme.textSecondary;
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
       </form>
 
       <div style={dynamicStyles.userSection}>

@@ -51,20 +51,132 @@ const FileDetail = ({ file, onClose, onDownload, onDelete, onShare }) => {
     return <FileIcon size={iconSize} color="#95a5a6" />;
   };
 
+  // ============ SMART AI-POWERED DESCRIPTION ============
   const generateDescription = () => {
     if (!file || !file.mimeType || !file.originalName) {
       return 'File information unavailable';
     }
     
-    const type = file.mimeType.split('/')[0];
-    const extension = file.originalName.split('.').pop()?.toUpperCase() || 'FILE';
+    const filename = file.originalName.toLowerCase();
+    const tags = file.tags || [];
+    const mimeType = file.mimeType.toLowerCase();
     
-    if (file.tags && file.tags.length > 0) {
-      const mainTags = file.tags.slice(0, 10).join(', ');
-      return `This ${type} file contains ${mainTags} content. Size: ${formatFileSize(file.size)}`;
+    // Documents - Research, Reports, Technical
+    if (mimeType.includes('word') || mimeType.includes('document')) {
+      if (tags.includes('research') || tags.includes('analysis')) {
+        return `A research document exploring ${tags.filter(t => !['word', 'document'].includes(t)).slice(0, 3).join(', ')}. Contains detailed analysis and findings on the subject matter.`;
+      }
+      if (tags.includes('report') || tags.includes('business')) {
+        return `A professional report document covering ${tags.filter(t => !['word', 'document'].includes(t)).slice(0, 3).join(' and ')}. Includes comprehensive information and insights.`;
+      }
+      if (tags.includes('resume') || tags.includes('cv')) {
+        return `A professional resume/CV document highlighting career experience, skills, and qualifications. Formatted for job applications and professional review.`;
+      }
+      if (tags.includes('invoice') || tags.includes('finance')) {
+        return `A financial document containing invoice details, payment information, and transaction records for business purposes.`;
+      }
+      if (tags.includes('cyberbullying') || tags.includes('technology')) {
+        return `A technical document about ${tags.filter(t => !['word', 'document'].includes(t)).slice(0, 4).join(', ')}. Contains research or information on advanced technology concepts.`;
+      }
+      // Generic document
+      const relevantTags = tags.filter(t => !['word', 'document', 'text'].includes(t)).slice(0, 3);
+      if (relevantTags.length > 0) {
+        return `A document file containing information about ${relevantTags.join(', ')}. Created for reference and documentation purposes.`;
+      }
+      return `A Word document file ready for viewing and editing. Contains formatted text content.`;
     }
-    return `${extension} ${type} file with size ${formatFileSize(file.size)}`;
+    
+    // PDFs
+    if (mimeType.includes('pdf')) {
+      if (tags.includes('invoice') || tags.includes('receipt')) {
+        return `A PDF invoice or receipt document with transaction details, payment information, and billing records for financial reference.`;
+      }
+      if (tags.includes('certificate') || tags.includes('achievement')) {
+        return `An official certificate or achievement document in PDF format, suitable for sharing and verification.`;
+      }
+      if (tags.includes('report') || tags.includes('presentation')) {
+        return `A professional PDF report or presentation document containing ${tags.filter(t => t !== 'pdf').slice(0, 3).join(', ')} information.`;
+      }
+      const relevantTags = tags.filter(t => t !== 'pdf').slice(0, 3);
+      if (relevantTags.length > 0) {
+        return `A PDF document about ${relevantTags.join(', ')}. Formatted for easy reading and sharing across different devices.`;
+      }
+      return `A PDF document file that can be viewed on any device. Contains formatted content ready for reading or printing.`;
+    }
+    
+    // Excel/Spreadsheets
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) {
+      if (tags.includes('finance') || tags.includes('budget')) {
+        return `A financial spreadsheet containing budget calculations, expense tracking, and monetary data analysis.`;
+      }
+      if (tags.includes('data') || tags.includes('analysis')) {
+        return `A data spreadsheet with organized information, calculations, and analytical insights. Suitable for data processing and reporting.`;
+      }
+      return `A spreadsheet file with organized data in rows and columns. Contains calculations, charts, and structured information.`;
+    }
+    
+    // Images
+    if (mimeType.startsWith('image/')) {
+      if (tags.includes('screenshot') || filename.includes('screenshot')) {
+        return `A screenshot image capturing digital content from a screen. Shows interface elements, text, or application views for reference or documentation.`;
+      }
+      if (tags.includes('selfie') || tags.includes('portrait')) {
+        return `A portrait photograph featuring people. Captured moment suitable for personal collection or sharing with others.`;
+      }
+      if (tags.includes('photo') && (tags.includes('nature') || tags.includes('landscape'))) {
+        return `A scenic photograph showcasing natural beauty and landscapes. Perfect for viewing, sharing, or use in creative projects.`;
+      }
+      if (tags.includes('food') || tags.includes('meal')) {
+        return `A food photograph capturing culinary creations or meal presentations. Great for recipe documentation or social sharing.`;
+      }
+      if (tags.includes('design') || tags.includes('art')) {
+        return `A creative design or artwork image showcasing visual content. Suitable for portfolios, presentations, or creative projects.`;
+      }
+      if (tags.includes('document') || tags.includes('scan')) {
+        return `A scanned document image containing text and information. Digitized for easy storage, sharing, and reference.`;
+      }
+      // Generic image
+      const imageContext = tags.filter(t => t !== 'image').slice(0, 3);
+      if (imageContext.length > 0) {
+        return `An image file featuring ${imageContext.join(', ')}. Captured or created for visual reference and sharing.`;
+      }
+      return `An image file ready for viewing and sharing. Contains visual content that can be displayed on any device.`;
+    }
+    
+    // Videos
+    if (mimeType.startsWith('video/')) {
+      if (tags.includes('presentation') || tags.includes('tutorial')) {
+        return `A video recording containing educational or instructional content. Useful for learning, training, or presentation purposes.`;
+      }
+      if (tags.includes('meeting') || tags.includes('conference')) {
+        return `A video recording of a meeting or conference session. Contains discussions, presentations, and collaborative content.`;
+      }
+      return `A video file containing multimedia content with both visual and audio elements. Ready for playback on compatible devices.`;
+    }
+    
+    // Audio
+    if (mimeType.startsWith('audio/')) {
+      if (tags.includes('music') || tags.includes('song')) {
+        return `An audio file containing music or song content. Ready for playback and listening on audio devices.`;
+      }
+      if (tags.includes('podcast') || tags.includes('recording')) {
+        return `An audio recording containing spoken content, discussions, or podcast episodes for listening and reference.`;
+      }
+      return `An audio file with sound content ready for playback. Can be played on any compatible audio device or player.`;
+    }
+    
+    // Fallback - Generic description
+    const extension = file.originalName.split('.').pop()?.toUpperCase() || 'FILE';
+    const type = mimeType.split('/')[0];
+    const relevantTags = tags.slice(0, 3);
+    
+    if (relevantTags.length > 0) {
+      return `A ${extension} file related to ${relevantTags.join(', ')}. Stored in your cloud storage for easy access and management.`;
+    }
+    
+    return `A ${extension} ${type} file stored in your cloud storage. Available for download, sharing, or further processing.`;
   };
+  // ============ END SMART DESCRIPTION ============
 
   return (
     <>
@@ -357,4 +469,4 @@ const styles = {
   }
 };
 
-export default FileDetail;
+export default FileDetail

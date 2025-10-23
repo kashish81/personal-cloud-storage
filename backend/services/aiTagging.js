@@ -73,7 +73,7 @@ function extractExcelText(filePath) {
   }
 }
 
-// AI Text Classification (Hugging Face)
+// AI Text Classification (Hugging Face) - UPDATED ENDPOINT
 async function classifyText(text) {
   if (!text || text.length < 50) return [];
   if (!HUGGINGFACE_API_KEY) {
@@ -83,7 +83,7 @@ async function classifyText(text) {
   
   try {
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/facebook/bart-large-mnli',
+      'https://router.huggingface.co/hf-inference/models/facebook/bart-large-mnli',
       {
         inputs: text.substring(0, 1000),
         parameters: {
@@ -117,7 +117,7 @@ async function classifyText(text) {
   }
 }
 
-// ENHANCED: AI Image Analysis with Better Tag Extraction
+// ENHANCED: AI Image Analysis with Better Tag Extraction - UPDATED ENDPOINT
 async function analyzeImage(filePath, filename) {
   // ALWAYS try fallback first for better UX, then enhance with AI if available
   const fallbackTags = getFallbackImageTags(filename);
@@ -131,9 +131,9 @@ async function analyzeImage(filePath, filename) {
     console.log('🖼️ Analyzing image with AI...');
     const fileBuffer = fs.readFileSync(filePath);
     
-    // Using Microsoft's GIT model - proven to work with Inference API
+    // Using Microsoft's GIT model - UPDATED ENDPOINT
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/microsoft/git-base',
+      'https://router.huggingface.co/hf-inference/models/microsoft/git-base',
       fileBuffer,
       {
         headers: {
@@ -159,22 +159,22 @@ async function analyzeImage(filePath, filename) {
     return fallbackTags;
   } catch (error) {
     console.error('Image analysis error:', error.message);
-    console.log('⚠️ Hugging Face API failed (403 = Invalid/Expired token). Using smart filename tags.');
+    console.log('⚠️ Hugging Face API failed. Using smart filename tags.');
     
     // Return enhanced fallback tags
     return fallbackTags.length > 1 ? fallbackTags : ['image', 'photo'];
   }
 }
 
-// NEW: Analyze image objects (fallback method)
+// NEW: Analyze image objects (fallback method) - UPDATED ENDPOINT
 async function analyzeImageObjects(filePath) {
   if (!HUGGINGFACE_API_KEY) return [];
   
   try {
     const fileBuffer = fs.readFileSync(filePath);
-    // Using Google's ViT model for image classification
+    // Using Google's ViT model for image classification - UPDATED ENDPOINT
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/google/vit-base-patch16-224',
+      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
       fileBuffer,
       {
         headers: {
@@ -282,33 +282,108 @@ function getFallbackImageTags(filename) {
   const tags = ['image'];
   const filenameLower = filename.toLowerCase();
   
-  // Check filename patterns
-  if (filenameLower.includes('screenshot') || filenameLower.includes('screen shot')) {
-    tags.push('screenshot', 'digital');
+  // Screenshots - PRIORITY CHECK
+  if (filenameLower.includes('screenshot') || filenameLower.includes('screen shot') || 
+      filenameLower.includes('screen_shot') || filenameLower.match(/\d{4}-\d{2}-\d{2}/)) {
+    tags.push('screenshot', 'digital', 'screen');
   }
-  if (filenameLower.includes('photo') || filenameLower.includes('pic')) {
+  
+  // Photo types
+  if (filenameLower.includes('photo') || filenameLower.includes('pic') || filenameLower.includes('img')) {
     tags.push('photo');
   }
   if (filenameLower.includes('selfie')) {
     tags.push('selfie', 'portrait', 'person');
   }
-  if (filenameLower.includes('profile') || filenameLower.includes('avatar')) {
-    tags.push('profile', 'portrait');
-  }
-  if (filenameLower.includes('landscape')) {
-    tags.push('landscape', 'nature');
-  }
-  if (filenameLower.match(/\b(food|meal|dish)\b/)) {
-    tags.push('food', 'meal');
-  }
-  if (filenameLower.match(/\b(design|graphic|art)\b/)) {
-    tags.push('design', 'creative');
-  }
-  if (filenameLower.includes('document') || filenameLower.includes('scan')) {
-    tags.push('document', 'scan');
+  if (filenameLower.includes('profile') || filenameLower.includes('avatar') || filenameLower.includes('dp')) {
+    tags.push('profile', 'portrait', 'person');
   }
   
-  return tags;
+  // People
+  if (filenameLower.match(/\b(me|myself|i|portrait)\b/)) {
+    tags.push('person', 'portrait');
+  }
+  if (filenameLower.includes('group') || filenameLower.includes('team') || filenameLower.includes('friends')) {
+    tags.push('people', 'group');
+  }
+  if (filenameLower.includes('family')) {
+    tags.push('people', 'family');
+  }
+  
+  // Messaging apps
+  if (filenameLower.includes('whatsapp') || filenameLower.includes('telegram') || filenameLower.includes('wa')) {
+    tags.push('messaging', 'chat');
+  }
+  
+  // Nature & Places
+  if (filenameLower.includes('landscape') || filenameLower.includes('scenery')) {
+    tags.push('landscape', 'nature', 'outdoor');
+  }
+  if (filenameLower.match(/\b(beach|ocean|sea|mountain|hill|forest|park)\b/)) {
+    tags.push('nature', 'outdoor');
+  }
+  if (filenameLower.match(/\b(city|urban|street|building)\b/)) {
+    tags.push('urban', 'architecture');
+  }
+  
+  // Food
+  if (filenameLower.match(/\b(food|meal|dish|recipe|cooking|restaurant|cafe)\b/)) {
+    tags.push('food', 'meal');
+  }
+  
+  // Events
+  if (filenameLower.match(/\b(birthday|party|celebration|event|wedding)\b/)) {
+    tags.push('event', 'celebration');
+  }
+  if (filenameLower.match(/\b(vacation|holiday|trip|travel)\b/)) {
+    tags.push('travel', 'vacation');
+  }
+  
+  // Work/Professional
+  if (filenameLower.match(/\b(work|office|meeting|presentation|project)\b/)) {
+    tags.push('work', 'professional');
+  }
+  if (filenameLower.match(/\b(certificate|award|achievement)\b/)) {
+    tags.push('certificate', 'achievement');
+  }
+  
+  // Design & Creative
+  if (filenameLower.match(/\b(design|graphic|art|drawing|sketch|illustration)\b/)) {
+    tags.push('design', 'creative', 'art');
+  }
+  if (filenameLower.match(/\b(logo|banner|poster|flyer)\b/)) {
+    tags.push('design', 'graphic');
+  }
+  
+  // Documents
+  if (filenameLower.includes('document') || filenameLower.includes('scan') || filenameLower.includes('pdf')) {
+    tags.push('document', 'scan');
+  }
+  if (filenameLower.match(/\b(id|card|license|passport|aadhar|pan)\b/)) {
+    tags.push('document', 'id', 'important');
+  }
+  
+  // Education
+  if (filenameLower.match(/\b(notes|study|assignment|homework|exam|test)\b/)) {
+    tags.push('education', 'study');
+  }
+  
+  // Personal
+  if (filenameLower.includes('personal') || filenameLower.includes('private')) {
+    tags.push('personal');
+  }
+  if (filenameLower.includes('backup')) {
+    tags.push('backup');
+  }
+  
+  // Date-based
+  const year = new Date().getFullYear();
+  if (filenameLower.includes(year.toString())) {
+    tags.push(year.toString());
+  }
+  
+  // Remove duplicates and limit
+  return [...new Set(tags)].slice(0, 8);
 }
 
 // Extract keywords from text
