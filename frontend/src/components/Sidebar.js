@@ -53,6 +53,7 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick, isM
     return total > 0 ? ((value / total) * 100).toFixed(1) : 0;
   };
 
+  // ALWAYS SHOW ALL FILE TYPES
   const fileTypeColors = {
     imagesSize: { color: '#FF6B6B', label: 'Images' },
     docsSize: { color: '#4ECDC4', label: 'Documents' },
@@ -374,33 +375,31 @@ const Sidebar = ({ activeView, onViewChange, onUploadClick, onSettingsClick, isM
             {storagePercentage.toFixed(1)}% used
           </p>
 
-          {storageExpanded && fileStats && (
+          {storageExpanded && (
             <div style={dynamicStyles.storageDetails}>
-              {Object.entries(fileStats)
-                .filter(([key]) => key.endsWith('Size') && key !== 'totalSize')
-                .map(([type, size]) => {
-                  const colorData = fileTypeColors[type];
-                  if (!colorData || size === 0) return null;
-                  return (
-                    <div key={type} style={dynamicStyles.storageDetailItem}>
-                      <div style={dynamicStyles.storageDetailLabel}>
-                        <div 
-                          style={{
-                            ...dynamicStyles.colorDot,
-                            background: colorData.color
-                          }}
-                        />
-                        <span>{colorData.label}</span>
-                      </div>
-                      <div style={dynamicStyles.storageDetailValue}>
-                        <span style={dynamicStyles.storageSize}>{formatStorage(size)}</span>
-                        <span style={dynamicStyles.storagePercent}>
-                          {getPercentage(size, storageUsed)}%
-                        </span>
-                      </div>
+              {/* ALWAYS SHOW ALL FILE TYPES - Even at 0% */}
+              {Object.entries(fileTypeColors).map(([type, colorData]) => {
+                const size = fileStats?.[type] || 0;
+                return (
+                  <div key={type} style={dynamicStyles.storageDetailItem}>
+                    <div style={dynamicStyles.storageDetailLabel}>
+                      <div 
+                        style={{
+                          ...dynamicStyles.colorDot,
+                          background: colorData.color
+                        }}
+                      />
+                      <span>{colorData.label}</span>
                     </div>
-                  );
-                })}
+                    <div style={dynamicStyles.storageDetailValue}>
+                      <span style={dynamicStyles.storageSize}>{formatStorage(size)}</span>
+                      <span style={dynamicStyles.storagePercent}>
+                        {getPercentage(size, storageUsed)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
